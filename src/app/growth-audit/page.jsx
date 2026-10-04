@@ -1,0 +1,854 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  CircleHelp,
+} from "lucide-react";
+import {
+  addDoc,
+  collection,
+  doc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
+
+import { generateAudit } from "@/lib/audit/engine";
+import { db } from "../../lib/firebase";
+
+const steps = [
+  "Bisnis",
+  "Akuisisi",
+  "Ekonomi",
+  "Bottleneck",
+  "Investasi",
+  "Kontak",
+];
+
+const initialForm = {
+  businessType: "",
+  product: "",
+  averagePrice: "",
+
+  currentlyRunningAds: "",
+  acquisitionChannel: "",
+  conversionMethod: "",
+
+  monthlyRevenue: "",
+  monthlyAdSpend: "",
+  dailyAdBudget: "",
+
+  biggestBottleneck: [],
+  goal: "",
+
+  investment: "",
+
+  name: "",
+  whatsapp: "",
+  email: "",
+};
+
+export default function GrowthAuditPage() {
+  const router = useRouter();
+
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState(initialForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const updateField = (field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const toggleBottleneck = (value) => {
+    setForm((prev) => {
+      const exists = prev.biggestBottleneck.includes(value);
+
+      if (exists) {
+        return {
+          ...prev,
+          biggestBottleneck: prev.biggestBottleneck.filter(
+            (item) => item !== value,
+          ),
+        };
+      }
+
+      if (prev.biggestBottleneck.length >= 2) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        biggestBottleneck: [...prev.biggestBottleneck, value],
+      };
+    });
+  };
+
+  const canContinue = () => {
+    switch (step) {
+      case 0:
+        return Boolean(form.businessType && form.product && form.averagePrice);
+
+      case 1:
+        return Boolean(
+          form.currentlyRunningAds &&
+          form.acquisitionChannel &&
+          form.conversionMethod,
+        );
+
+      case 2:
+        return Boolean(form.monthlyRevenue && form.monthlyAdSpend);
+
+      case 3:
+        return Boolean(form.biggestBottleneck.length > 0 && form.goal);
+
+      case 4:
+        return Boolean(form.investment);
+
+      case 5:
+        return Boolean(form.name && form.whatsapp && form.email);
+
+      default:
+        return false;
+    }
+  };
+
+  const submitAudit = async () => {
+    if (!canContinue() || submitting) return;
+
+    setSubmitting(true);
+    setError("");
+
+    try {
+      /*
+       * Generate automatic diagnosis
+       */
+      const auditResult = generateAudit(form);
+
+      /*
+       * =====================================================
+       * 1. SAVE COMPLETE LEAD DATA
+       * =====================================================
+       */
+
+      const auditData = {
+        ...form,
+
+        auditScore: auditResult.auditScore,
+        businessStage: auditResult.businessStage,
+        acquisitionStatus: auditResult.acquisitionStatus,
+        primaryBottleneck: auditResult.primaryBottleneck,
+        readiness: auditResult.readiness,
+        recommendations: auditResult.recommendations,
+
+        status: "new",
+        leadScore: null,
+
+        source: "website",
+        formVersion: "v1",
+
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      const auditRef = await addDoc(collection(db, "growthAudits"), auditData);
+
+      /*
+       * =====================================================
+       * 2. SAVE PUBLIC RESULT
+       *
+       * IMPORTANT:
+       * Tidak menyimpan:
+       * - nama
+       * - email
+       * - whatsapp
+       * - product
+       * - revenue
+       * - ad spend
+       *
+       * Hanya diagnosis.
+       * =====================================================
+       */
+
+      const resultData = {
+        auditScore: auditResult.auditScore,
+        businessStage: auditResult.businessStage,
+        acquisitionStatus: auditResult.acquisitionStatus,
+        primaryBottleneck: auditResult.primaryBottleneck,
+        readiness: auditResult.readiness,
+        recommendations: auditResult.recommendations,
+
+        auditId: auditRef.id,
+
+        createdAt: serverTimestamp(),
+
+        formVersion: "v1",
+      };
+
+      await setDoc(doc(db, "auditResults", auditRef.id), resultData);
+
+      /*
+       * =====================================================
+       * 3. REDIRECT
+       * =====================================================
+       */
+
+      router.push(`/growth-audit/result/${auditRef.id}`);
+    } catch (err) {
+      console.error("Growth Audit submission error:", err);
+
+      setError("Terjadi masalah saat mengirim audit. Silakan coba lagi.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const nextStep = () => {
+    if (!canContinue()) return;
+
+    if (step < steps.length - 1) {
+      setStep((prev) => prev + 1);
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    } else {
+      submitAudit();
+    }
+  };
+
+  const previousStep = () => {
+    if (step > 0) {
+      setStep((prev) => prev - 1);
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  return (
+    <main className="relative min-h-screen overflow-hidden bg-[#0D0D0D] text-white">
+      {/* BACKGROUND */}
+
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,#18181A_0%,#0D0D0D_42%,#0D0D0D_100%)]" />
+
+        <div className="absolute left-1/2 top-[-250px] h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-white/[0.018] blur-[140px]" />
+
+        <div
+          className="absolute inset-0 opacity-[0.018]"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)
+            `,
+            backgroundSize: "48px 48px",
+            maskImage: "linear-gradient(to bottom, black 0%, transparent 70%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, black 0%, transparent 70%)",
+          }}
+        />
+      </div>
+
+      {/* HEADER */}
+
+      <header className="relative z-20 border-b border-white/[0.06] bg-[#0D0D0D]/70 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+          <Link href="/" className="text-lg font-semibold tracking-[-0.03em]">
+            Lucratus
+          </Link>
+
+          <span className="text-xs uppercase tracking-[0.18em] text-gray-600">
+            Growth Audit
+          </span>
+        </div>
+      </header>
+
+      {/* CONTENT */}
+
+      <div className="relative z-10 mx-auto max-w-3xl px-6 py-16 md:py-24">
+        {/* INTRO */}
+
+        <div className="mb-12">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="h-px w-8 bg-white/30" />
+
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">
+              Free Growth Audit
+            </p>
+          </div>
+
+          <h1 className="text-4xl font-semibold leading-[1.05] tracking-[-0.04em] md:text-6xl">
+            Mari pahami
+            <span className="text-gray-500"> growth Anda.</span>
+          </h1>
+
+          <p className="mt-6 max-w-2xl text-base leading-8 text-gray-400 md:text-lg">
+            Jawab beberapa pertanyaan tentang bisnis, pemasaran, dan kondisi
+            finansial Anda. Kami akan menggunakan informasi ini untuk memahami
+            hambatan dan peluang pertumbuhan yang paling relevan.
+          </p>
+        </div>
+
+        {/* PROGRESS */}
+
+        <div className="mb-10">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-xs font-medium text-gray-500">
+              Langkah {step + 1} dari {steps.length}
+            </span>
+
+            <span className="text-xs text-gray-600">{steps[step]}</span>
+          </div>
+
+          <div className="h-px w-full bg-white/[0.08]">
+            <div
+              className="h-px bg-white transition-all duration-500"
+              style={{
+                width: `${((step + 1) / steps.length) * 100}%`,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* FORM CARD */}
+
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 backdrop-blur-xl md:p-10">
+          {step === 0 && <BusinessStep form={form} updateField={updateField} />}
+
+          {step === 1 && (
+            <AcquisitionStep form={form} updateField={updateField} />
+          )}
+
+          {step === 2 && (
+            <EconomicsStep form={form} updateField={updateField} />
+          )}
+
+          {step === 3 && (
+            <BottleneckStep
+              form={form}
+              updateField={updateField}
+              toggleBottleneck={toggleBottleneck}
+            />
+          )}
+
+          {step === 4 && (
+            <InvestmentStep form={form} updateField={updateField} />
+          )}
+
+          {step === 5 && <ContactStep form={form} updateField={updateField} />}
+
+          {/* ERROR */}
+
+          {error && (
+            <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/[0.05] px-4 py-3 text-sm text-red-300">
+              {error}
+            </div>
+          )}
+
+          {/* NAVIGATION */}
+
+          <div className="mt-10 flex items-center justify-between border-t border-white/[0.07] pt-6">
+            <button
+              type="button"
+              onClick={previousStep}
+              disabled={step === 0 || submitting}
+              className="inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-white disabled:pointer-events-none disabled:opacity-20"
+            >
+              <ArrowLeft size={16} />
+              Kembali
+            </button>
+
+            <button
+              type="button"
+              onClick={nextStep}
+              disabled={!canContinue() || submitting}
+              className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition-all hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              {submitting
+                ? "Menganalisis..."
+                : step === steps.length - 1
+                  ? "Lihat Hasil Audit"
+                  : "Lanjutkan"}
+
+              {!submitting && <ArrowRight size={16} />}
+            </button>
+          </div>
+        </div>
+
+        {/* NOTE */}
+
+        <div className="mt-6 flex items-start gap-3 text-xs leading-6 text-gray-600">
+          <CircleHelp size={15} className="mt-0.5 shrink-0" />
+
+          <p>
+            Growth Audit bukan janji bahwa kami dapat meningkatkan revenue Anda.
+            Tujuannya adalah mengidentifikasi area yang paling layak diuji
+            berdasarkan kondisi bisnis Anda saat ini.
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+/* =========================================================
+   SHARED UI
+========================================================= */
+
+function FieldLabel({ children, optional = false }) {
+  return (
+    <label className="mb-3 block text-sm font-medium text-gray-200">
+      {children}
+
+      {optional && (
+        <span className="ml-2 text-xs font-normal text-gray-600">Opsional</span>
+      )}
+    </label>
+  );
+}
+
+function SelectField({ value, onChange, options, placeholder }) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full appearance-none rounded-xl border border-white/[0.08] bg-[#111113] px-4 py-3.5 pr-10 text-sm text-white outline-none transition-colors focus:border-white/[0.2]"
+      >
+        <option value="" disabled>
+          {placeholder}
+        </option>
+
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+
+      <ChevronDown
+        size={16}
+        className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-600"
+      />
+    </div>
+  );
+}
+
+function TextInput({ value, onChange, placeholder, type = "text" }) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full rounded-xl border border-white/[0.08] bg-[#111113] px-4 py-3.5 text-sm text-white outline-none placeholder:text-gray-700 transition-colors focus:border-white/[0.2]"
+    />
+  );
+}
+
+function OptionButton({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-xl border px-4 py-3.5 text-left text-sm transition-all ${
+        active
+          ? "border-white/30 bg-white/[0.1] text-white"
+          : "border-white/[0.08] bg-[#111113] text-gray-500 hover:border-white/[0.16] hover:text-gray-300"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* =========================================================
+   STEP HEADING
+========================================================= */
+
+function StepHeading({ eyebrow, title, description }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-600">
+        {eyebrow}
+      </p>
+
+      <h2 className="mt-4 text-2xl font-semibold tracking-[-0.03em] md:text-3xl">
+        {title}
+      </h2>
+
+      <p className="mt-4 max-w-2xl text-sm leading-7 text-gray-500">
+        {description}
+      </p>
+    </div>
+  );
+}
+
+/* =========================================================
+   BUSINESS
+========================================================= */
+
+function BusinessStep({ form, updateField }) {
+  return (
+    <div>
+      <StepHeading
+        eyebrow="01 / Bisnis"
+        title="Ceritakan sedikit tentang bisnis Anda."
+        description="Kami ingin memahami apa yang Anda jual dan siapa market yang sedang Anda layani."
+      />
+
+      <div className="mt-10 space-y-6">
+        <div>
+          <FieldLabel>Jenis bisnis Anda</FieldLabel>
+
+          <SelectField
+            value={form.businessType}
+            onChange={(value) => updateField("businessType", value)}
+            placeholder="Pilih jenis bisnis"
+            options={[
+              "E-commerce",
+              "Bisnis Lokal",
+              "Klinik / Healthcare",
+              "Jasa Profesional",
+              "Edukasi / Kursus",
+              "B2B",
+              "SaaS / Teknologi",
+              "Lainnya",
+            ]}
+          />
+        </div>
+
+        <div>
+          <FieldLabel>Produk atau jasa yang Anda jual</FieldLabel>
+
+          <TextInput
+            value={form.product}
+            onChange={(value) => updateField("product", value)}
+            placeholder="Contoh: Skincare, jasa dental, consulting..."
+          />
+        </div>
+
+        <div>
+          <FieldLabel>Rata-rata harga produk atau jasa</FieldLabel>
+
+          <TextInput
+            value={form.averagePrice}
+            onChange={(value) => updateField("averagePrice", value)}
+            placeholder="Contoh: Rp500.000"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   ACQUISITION
+========================================================= */
+
+function AcquisitionStep({ form, updateField }) {
+  return (
+    <div>
+      <StepHeading
+        eyebrow="02 / Akuisisi"
+        title="Bagaimana Anda mendapatkan customer saat ini?"
+        description="Kami ingin memahami dari mana traffic datang dan apa yang terjadi setelah seseorang menunjukkan ketertarikan."
+      />
+
+      <div className="mt-10 space-y-6">
+        <div>
+          <FieldLabel>
+            Apakah Anda sedang menjalankan iklan berbayar?
+          </FieldLabel>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {["Ya", "Tidak", "Pernah"].map((option) => (
+              <OptionButton
+                key={option}
+                active={form.currentlyRunningAds === option}
+                onClick={() => updateField("currentlyRunningAds", option)}
+              >
+                {option}
+              </OptionButton>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <FieldLabel>Sumber customer utama Anda saat ini</FieldLabel>
+
+          <SelectField
+            value={form.acquisitionChannel}
+            onChange={(value) => updateField("acquisitionChannel", value)}
+            placeholder="Pilih sumber utama"
+            options={[
+              "Meta Ads",
+              "Google Ads",
+              "TikTok Ads",
+              "Media Sosial Organik",
+              "WhatsApp",
+              "Marketplace",
+              "Referral",
+              "Lainnya",
+            ]}
+          />
+        </div>
+
+        <div>
+          <FieldLabel>
+            Setelah calon customer tertarik, biasanya mereka diarahkan ke mana?
+          </FieldLabel>
+
+          <SelectField
+            value={form.conversionMethod}
+            onChange={(value) => updateField("conversionMethod", value)}
+            placeholder="Pilih proses Anda"
+            options={[
+              "WhatsApp",
+              "Website / Landing Page",
+              "Telepon",
+              "Appointment / Booking",
+              "Checkout",
+              "Tim Sales",
+              "Lainnya",
+            ]}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   ECONOMICS
+========================================================= */
+
+function EconomicsStep({ form, updateField }) {
+  return (
+    <div>
+      <StepHeading
+        eyebrow="03 / Ekonomi Bisnis"
+        title="Sekarang kita lihat angkanya."
+        description="Tidak perlu angka yang sempurna. Estimasi terbaik Anda sudah cukup untuk membantu kami memahami kondisi bisnis."
+      />
+
+      <div className="mt-10 space-y-6">
+        <div>
+          <FieldLabel>Rata-rata omzet per bulan</FieldLabel>
+
+          <SelectField
+            value={form.monthlyRevenue}
+            onChange={(value) => updateField("monthlyRevenue", value)}
+            placeholder="Pilih kisaran omzet"
+            options={[
+              "< Rp10jt",
+              "Rp10–25jt",
+              "Rp25–50jt",
+              "Rp50–100jt",
+              "Rp100–250jt",
+              "Rp250jt+",
+              "Tidak ingin menyebutkan",
+            ]}
+          />
+        </div>
+
+        <div>
+          <FieldLabel>Rata-rata budget iklan per bulan</FieldLabel>
+
+          <SelectField
+            value={form.monthlyAdSpend}
+            onChange={(value) => updateField("monthlyAdSpend", value)}
+            placeholder="Pilih kisaran budget"
+            options={[
+              "Belum menjalankan iklan",
+              "< Rp1jt",
+              "Rp1–5jt",
+              "Rp5–10jt",
+              "Rp10–25jt",
+              "Rp25–50jt",
+              "Rp50jt+",
+            ]}
+          />
+        </div>
+
+        <div>
+          <FieldLabel optional>Perkiraan budget iklan per hari</FieldLabel>
+
+          <TextInput
+            value={form.dailyAdBudget}
+            onChange={(value) => updateField("dailyAdBudget", value)}
+            placeholder="Contoh: Rp300.000/hari"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   BOTTLENECK
+========================================================= */
+
+function BottleneckStep({ form, updateField, toggleBottleneck }) {
+  const bottlenecks = [
+    "Traffic / leads masih kurang",
+    "Kualitas leads",
+    "Conversion rate rendah",
+    "Biaya mendapatkan customer terlalu tinggi",
+    "Creative / materi iklan",
+    "Landing page / funnel",
+    "WhatsApp / proses sales",
+    "Belum punya cukup data",
+  ];
+
+  return (
+    <div>
+      <StepHeading
+        eyebrow="04 / Bottleneck"
+        title="Menurut Anda, growth bisnis sedang terhambat di mana?"
+        description="Pilih maksimal dua area yang paling menggambarkan kondisi bisnis Anda saat ini."
+      />
+
+      <div className="mt-10">
+        <FieldLabel>Masalah marketing terbesar saat ini</FieldLabel>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {bottlenecks.map((item) => {
+            const active = form.biggestBottleneck.includes(item);
+
+            return (
+              <OptionButton
+                key={item}
+                active={active}
+                onClick={() => toggleBottleneck(item)}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <span>{item}</span>
+
+                  {active && <Check size={16} />}
+                </div>
+              </OptionButton>
+            );
+          })}
+        </div>
+
+        <div className="mt-8">
+          <FieldLabel>Apa target pertumbuhan yang ingin Anda capai?</FieldLabel>
+
+          <TextInput
+            value={form.goal}
+            onChange={(value) => updateField("goal", value)}
+            placeholder="Contoh: 2x omzet, 100 leads berkualitas/bulan..."
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   INVESTMENT
+========================================================= */
+
+function InvestmentStep({ form, updateField }) {
+  const options = [
+    "< Rp1jt",
+    "Rp1–3jt",
+    "Rp3–5jt",
+    "Rp5–10jt",
+    "> Rp10jt",
+    "Saya belum tahu, saya ingin melihat rekomendasinya terlebih dahulu",
+  ];
+
+  return (
+    <div>
+      <StepHeading
+        eyebrow="05 / Investasi"
+        title="Seberapa siap Anda berinvestasi untuk growth?"
+        description="Jawaban ini membantu kami memahami apakah ada potential fit untuk partnership dan level implementasi yang masuk akal."
+      />
+
+      <div className="mt-10">
+        <FieldLabel>
+          Jika kami menemukan peluang pertumbuhan yang masuk akal untuk bisnis
+          Anda, berapa investasi yang bersedia Anda siapkan untuk
+          implementasinya?
+        </FieldLabel>
+
+        <div className="mt-4 grid gap-3">
+          {options.map((option) => (
+            <OptionButton
+              key={option}
+              active={form.investment === option}
+              onClick={() => updateField("investment", option)}
+            >
+              {option}
+            </OptionButton>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   CONTACT
+========================================================= */
+
+function ContactStep({ form, updateField }) {
+  return (
+    <div>
+      <StepHeading
+        eyebrow="06 / Kontak"
+        title="Ke mana kami bisa mengirim hasil audit Anda?"
+        description="Gunakan nomor WhatsApp yang aktif. Hasil audit akan langsung ditampilkan setelah Anda mengirim form."
+      />
+
+      <div className="mt-10 space-y-6">
+        <div>
+          <FieldLabel>Nama Anda</FieldLabel>
+
+          <TextInput
+            value={form.name}
+            onChange={(value) => updateField("name", value)}
+            placeholder="Nama lengkap"
+          />
+        </div>
+
+        <div>
+          <FieldLabel>Nomor WhatsApp</FieldLabel>
+
+          <TextInput
+            value={form.whatsapp}
+            onChange={(value) => updateField("whatsapp", value)}
+            placeholder="Contoh: 08123456789"
+            type="tel"
+          />
+        </div>
+
+        <div>
+          <FieldLabel>Email</FieldLabel>
+
+          <TextInput
+            value={form.email}
+            onChange={(value) => updateField("email", value)}
+            placeholder="nama@bisnis.com"
+            type="email"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

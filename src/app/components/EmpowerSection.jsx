@@ -1,56 +1,54 @@
 import Link from "next/link";
-import { FaInstagram } from "react-icons/fa";
 import Footer from "./Footer";
+import { ArrowUpRight } from "lucide-react";
 
 export default function EmpowerSection() {
   return (
     <>
-      <section className="relative min-h-[80vh] flex flex-col items-center justify-center text-center px-6 py-24 overflow-hidden">
-        {/* BACKGROUND GRID + BLOOM */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-            opacity: 0.05,
-          }}
-        ></div>
+      <section className="relative overflow-hidden border-t border-white/[0.06] py-32 text-white md:py-40">
+        <div className="mx-auto max-w-5xl px-6 text-center">
+          {/* EYEBROW */}
+          <div className="mb-6 flex items-center justify-center gap-4">
+            <span className="h-px w-8 bg-white/20" />
 
-        {/* BLOOM GRADIENT */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-blue-900 via-blue-800 to-sky-600 opacity-40 mix-blend-soft-light blur-3xl"></div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">
+              Growth Partnership
+            </p>
 
-        {/* CONTENT */}
-        <div className="relative z-10 max-w-3xl space-y-6 text-white">
-          <h2 className="text-4xl md:text-5xl font-bold">
-            Helping Brands Grow Faster
+            <span className="h-px w-8 bg-white/20" />
+          </div>
+
+          {/* HEADLINE */}
+          <h2 className="text-4xl font-semibold leading-[1.02] tracking-[-0.04em] md:text-6xl">
+            Your growth.
+            <br />
+            <span className="text-gray-500">Our execution.</span>
           </h2>
 
-          <p className="text-gray-300 text-lg leading-relaxed">
-            Maximize your brand’s potential with data-driven marketing
-            strategies. From analysis to Facebook & Instagram ad optimization,
-            we focus on improving conversions and driving long-term, sustainable
-            growth.
+          {/* DESCRIPTION */}
+          <p className="mx-auto mt-7 max-w-2xl text-base leading-8 text-gray-400 md:text-lg">
+            Anda menyediakan growth capital. Kami menyediakan strategy,
+            execution, dan continuous optimization untuk membangun acquisition
+            system yang lebih terukur.
           </p>
 
-          <div className="flex items-center justify-center gap-4">
+          {/* CTA */}
+          <div className="mt-10">
             <Link
-              href="/apply"
-              className="bg-white text-black px-6 py-3 rounded-full font-semibold hover:bg-transparent hover:text-white border border-white transition-all"
+              href="/growth-audit"
+              className="group inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.04] px-7 py-4 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/[0.2] hover:bg-white hover:text-black"
             >
-              Apply Now
-            </Link>
-            <Link
-              href="/about"
-              className="text-white underline hover:text-gray-300 transition-all"
-            >
-              Learn More →
+              Get Your Free Growth Audit
+
+              <ArrowUpRight
+                size={17}
+                className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
       <Footer />
     </>
   );

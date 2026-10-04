@@ -1,74 +1,115 @@
-"use client"; // HARUS di baris pertama, tanpa spasi, tanpa komentar di atasnya
+"use client";
 
 import Link from "next/link";
 import Image from "next/image";
 import { montserrat } from "../fonts";
 import { useState } from "react";
-import { Menu, X } from "lucide-react"; // ikon hamburger & close
+import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-black/90 backdrop-blur-sm border-b border-gray-800">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        {/* LOGO + BRAND NAME */}
-        <Link href="/" className="flex items-center space-x-3 select-none">
-          <Image
-            src="/lucrum.png"
-            alt="lucratus Logo"
-            width={40}
-            height={40}
-            className="rounded-full"
-          />
-          <span
-            className={`${montserrat.className} text-2xl font-bold text-white tracking-tight`}
-          >
-            Lucratus <span className="text-gray-400">Agency</span>
-          </span>
-        </Link>
-
-        {/* CTA BUTTON (desktop only) */}
-        <div className="hidden md:block">
+    <nav className="fixed top-0 z-50 w-full">
+      {/* Navbar glass */}
+      <div className="border-b border-white/[0.06] bg-[#0D0D0D]/70 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          {/* BRAND */}
           <Link
-            href="/apply"
-            className="bg-white text-black px-5 py-2 rounded-full font-semibold hover:bg-black hover:text-white border border-white transition-colors"
+            href="/"
+            className="group flex items-center gap-3 select-none"
           >
-            Apply Now
-          </Link>
-        </div>
+            <div className="relative">
+              <div className="absolute -inset-2 rounded-full bg-white/[0.04] opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
 
-        {/* HAMBURGER ICON (mobile only) */}
-        <button
-          className="md:hidden text-white"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Toggle menu"
-        >
-          {menuOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
+              <Image
+                src="/lucrum.png"
+                alt="Lucratus"
+                width={34}
+                height={34}
+                priority
+                className="relative rounded-full"
+              />
+            </div>
+
+            <span
+              className={`${montserrat.className} text-xl font-bold tracking-[-0.03em] text-white md:text-2xl`}
+            >
+              Lucratus
+            </span>
+          </Link>
+
+          {/* DESKTOP */}
+          <div className="hidden items-center gap-8 md:flex">
+            <Link
+              href="#how-we-work"
+              className="text-sm text-gray-500 transition-colors hover:text-white"
+            >
+              How We Work
+            </Link>
+
+            <Link
+              href="#results"
+              className="text-sm text-gray-500 transition-colors hover:text-white"
+            >
+              Results
+            </Link>
+
+            <Link
+              href="/growth-audit"
+              className="rounded-full border border-white/[0.08] bg-white/[0.06] px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/[0.18] hover:bg-white hover:text-black"
+            >
+              Free Growth Audit
+            </Link>
+          </div>
+
+          {/* MOBILE */}
+          <button
+            type="button"
+            className="rounded-full border border-white/[0.08] bg-white/[0.04] p-2.5 text-white backdrop-blur-md transition-colors hover:bg-white/[0.08] md:hidden"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle menu"
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </div>
 
       {/* MOBILE MENU */}
-      {menuOpen && (
-        <div className="md:hidden bg-black/95 border-t border-gray-800">
-          <div className="px-6 py-4 flex flex-col space-y-3">
-            <Link
-              href="/"
-              onClick={() => setMenuOpen(false)}
-              className="text-white hover:text-gray-300 font-medium"
-            >
-              Home
-            </Link>
-            <Link
-              href="/apply"
-              onClick={() => setMenuOpen(false)}
-              className="text-white hover:text-gray-300 font-medium"
-            >
-              Apply Now
-            </Link>
-          </div>
+      <div
+        className={`overflow-hidden border-b border-white/[0.06] bg-[#0D0D0D]/95 backdrop-blur-xl transition-all duration-300 md:hidden ${
+          menuOpen
+            ? "max-h-96 opacity-100"
+            : "max-h-0 border-transparent opacity-0"
+        }`}
+      >
+        <div className="mx-auto flex max-w-7xl flex-col gap-1 px-6 py-5">
+          <Link
+            href="#how-we-work"
+            onClick={() => setMenuOpen(false)}
+            className="rounded-xl px-4 py-3 text-sm text-gray-400 transition-colors hover:bg-white/[0.04] hover:text-white"
+          >
+            How We Work
+          </Link>
+
+          <Link
+            href="#results"
+            onClick={() => setMenuOpen(false)}
+            className="rounded-xl px-4 py-3 text-sm text-gray-400 transition-colors hover:bg-white/[0.04] hover:text-white"
+          >
+            Results
+          </Link>
+
+          <Link
+            href="/growth-audit"
+            onClick={() => setMenuOpen(false)}
+            className="mt-3 rounded-full bg-white px-5 py-3 text-center text-sm font-semibold text-black transition-colors hover:bg-gray-200"
+          >
+            Get Your Free Growth Audit
+          </Link>
         </div>
-      )}
+      </div>
     </nav>
   );
 }
