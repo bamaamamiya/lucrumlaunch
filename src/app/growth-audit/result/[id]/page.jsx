@@ -417,7 +417,7 @@ export default function GrowthAuditResultPage() {
               href="https://calendly.com/agencylucratus/discovery-call"
               className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-semibold text-black transition-colors hover:bg-gray-200"
             >
-              Book a Growth Call
+              Book a 30-Minute Growth Call
 
               <ArrowRight
                 size={17}
