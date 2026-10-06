@@ -1,5 +1,5 @@
 "use client";
-
+// growth-audit/page.jsx
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,6 +33,7 @@ const AUDIT_STORAGE_KEY = "lucratus-growth-audit";
 
 const initialForm = {
   businessType: "",
+  brandName: "",
   product: "",
   averagePrice: "",
 
@@ -52,6 +53,7 @@ const initialForm = {
   name: "",
   whatsapp: "",
   email: "",
+  socialProfile: "",
 };
 
 export default function GrowthAuditPage() {
@@ -63,62 +65,59 @@ export default function GrowthAuditPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-  let restoredStep = 0;
-  let restoredForm = { ...initialForm };
+    let restoredStep = 0;
+    let restoredForm = { ...initialForm };
 
-  try {
-    const saved = localStorage.getItem(AUDIT_STORAGE_KEY);
+    try {
+      const saved = localStorage.getItem(AUDIT_STORAGE_KEY);
 
-    if (saved) {
-      const parsed = JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
 
-      if (typeof parsed.step === "number") {
-        restoredStep = Math.min(
-          Math.max(parsed.step, 0),
-          steps.length - 1
-        );
+        if (typeof parsed.step === "number") {
+          restoredStep = Math.min(Math.max(parsed.step, 0), steps.length - 1);
+        }
+
+        if (parsed.form) {
+          restoredForm = {
+            ...initialForm,
+            ...parsed.form,
+          };
+        }
       }
-
-      if (parsed.form) {
-        restoredForm = {
-          ...initialForm,
-          ...parsed.form,
-        };
-      }
+    } catch (error) {
+      console.error("Failed to restore growth audit:", error);
     }
-  } catch (error) {
-    console.error("Failed to restore growth audit:", error);
-  }
 
-  // Current entry = Step 0
-  window.history.replaceState(
-    {
-      auditStep: 0,
-    },
-    "",
-    window.location.pathname,
-  );
-
-  // Reconstruct history sampai step terakhir
-  for (let i = 1; i <= restoredStep; i++) {
-    window.history.pushState(
+    // Current entry = Step 0
+    window.history.replaceState(
       {
-        auditStep: i,
+        auditStep: 0,
       },
       "",
       window.location.pathname,
     );
-  }
 
-  setStep(restoredStep);
-  setForm(restoredForm);
-  setHydrated(true);
-}, []);
+    // Reconstruct history sampai step terakhir
+    for (let i = 1; i <= restoredStep; i++) {
+      window.history.pushState(
+        {
+          auditStep: i,
+        },
+        "",
+        window.location.pathname,
+      );
+    }
+
+    setStep(restoredStep);
+    setForm(restoredForm);
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (!hydrated) return;
 
-    const { name, whatsapp, email, ...draftForm } = form;
+    const { name, whatsapp, email, socialProfile, ...draftForm } = form;
 
     localStorage.setItem(
       AUDIT_STORAGE_KEY,
@@ -185,7 +184,12 @@ export default function GrowthAuditPage() {
   const canContinue = () => {
     switch (step) {
       case 0:
-        return Boolean(form.businessType && form.product && form.averagePrice);
+        return Boolean(
+          form.brandName &&
+          form.businessType &&
+          form.product &&
+          form.averagePrice,
+        );
 
       case 1:
         return Boolean(
@@ -211,6 +215,75 @@ export default function GrowthAuditPage() {
     }
   };
 
+  const calculateQualification = (form) => {
+    let score = 0;
+    let tier = "not_fit";
+
+    // Business fit
+    const goodBusinessTypes = [
+      "E-commerce",
+      "Bisnis Lokal",
+      "Klinik / Healthcare",
+      "Jasa Profesional",
+      "Edukasi / Kursus",
+      "B2B",
+      "SaaS / Teknologi",
+    ];
+
+    if (goodBusinessTypes.includes(form.businessType)) {
+      score += 2;
+    }
+
+    // Revenue
+    const revenueScore = {
+      "< Rp10jt": 0,
+      "Rp10–25jt": 1,
+      "Rp25–50jt": 2,
+      "Rp50–100jt": 3,
+      "Rp100–250jt": 3,
+      "Rp250jt+": 3,
+      "Tidak ingin menyebutkan": 0,
+    };
+
+    score += revenueScore[form.monthlyRevenue] ?? 0;
+
+    // Current ads / acquisition
+    if (form.currentlyRunningAds === "Ya") {
+      score += 2;
+    } else if (form.currentlyRunningAds === "Pernah") {
+      score += 1;
+    }
+
+    // Investment readiness
+    const investmentScore = {
+      "< Rp1jt": 0,
+      "Rp1–3jt": 1,
+      "Rp3–5jt": 2,
+      "Rp5–10jt": 3,
+      "> Rp10jt": 3,
+      "Saya belum tahu, saya ingin melihat rekomendasinya terlebih dahulu": 0,
+    };
+
+    score += investmentScore[form.investment] ?? 0;
+
+    // Has meaningful growth goal
+    if (form.goal?.trim()) {
+      score += 1;
+    }
+
+    if (score >= 7) {
+      tier = "qualified";
+    } else if (score >= 4) {
+      tier = "nurture";
+    }
+
+    return {
+      score,
+      qualified: tier === "qualified",
+      tier,
+    };
+  };
+
   const submitAudit = async () => {
     if (!canContinue() || submitting) return;
 
@@ -223,6 +296,8 @@ export default function GrowthAuditPage() {
        */
       const auditResult = generateAudit(form);
 
+      const qualification = calculateQualification(form);
+
       /*
        * =====================================================
        * 1. SAVE COMPLETE LEAD DATA
@@ -232,6 +307,7 @@ export default function GrowthAuditPage() {
       const auditData = {
         ...form,
 
+        // Audit
         auditScore: auditResult.auditScore,
         businessStage: auditResult.businessStage,
         acquisitionStatus: auditResult.acquisitionStatus,
@@ -239,8 +315,23 @@ export default function GrowthAuditPage() {
         readiness: auditResult.readiness,
         recommendations: auditResult.recommendations,
 
-        status: "new",
-        leadScore: null,
+        qualificationScore: qualification.score,
+        qualificationTier: qualification.tier,
+        qualified: qualification.qualified,
+
+        // CRM lifecycle
+        salesStage: "new",
+
+        contactStatus: "not_contacted",
+        lastContactedAt: null,
+        nextFollowUpAt: null,
+
+        proposalSentAt: null,
+        wonAt: null,
+        lostAt: null,
+
+        callBookedAt: null,
+        callCompletedAt: null,
 
         source: "website",
         formVersion: "v1",
@@ -276,6 +367,11 @@ export default function GrowthAuditPage() {
         readiness: auditResult.readiness,
         recommendations: auditResult.recommendations,
 
+        // Qualification
+        qualificationScore: qualification.score,
+        qualified: qualification.qualified,
+        qualificationTier: qualification.tier,
+
         auditId: auditRef.id,
 
         createdAt: serverTimestamp(),
@@ -296,14 +392,20 @@ export default function GrowthAuditPage() {
     } catch (err) {
       console.error("Growth Audit submission error:", err);
 
-      setError("Terjadi masalah saat mengirim audit. Silakan coba lagi.");
+      setError("Terjadi masalah saat mengirim diagnosis. Silakan coba lagi.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const nextStep = () => {
-    if (!canContinue()) return;
+    if (!canContinue() || submitting) return;
+
+    // Last step → submit audit
+    if (step === steps.length - 1) {
+      submitAudit();
+      return;
+    }
 
     const nextStepIndex = step + 1;
 
@@ -362,7 +464,7 @@ export default function GrowthAuditPage() {
           </Link>
 
           <span className="text-xs uppercase tracking-[0.18em] text-gray-600">
-            Growth Audit
+            Growth Diagnosis
           </span>
         </div>
       </header>
@@ -377,7 +479,7 @@ export default function GrowthAuditPage() {
             <span className="h-px w-8 bg-white/30" />
 
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">
-              Free Growth Audit
+              Free Growth Diagnosis
             </p>
           </div>
 
@@ -471,7 +573,7 @@ export default function GrowthAuditPage() {
               {submitting
                 ? "Menganalisis..."
                 : step === steps.length - 1
-                  ? "Lihat Hasil Audit"
+                  ? "Lihat Hasil Diagnosis"
                   : "Lanjutkan"}
 
               {!submitting && <ArrowRight size={16} />}
@@ -485,9 +587,10 @@ export default function GrowthAuditPage() {
           <CircleHelp size={15} className="mt-0.5 shrink-0" />
 
           <p>
-            Growth Audit bukan janji bahwa kami dapat meningkatkan revenue Anda.
-            Tujuannya adalah mengidentifikasi area yang paling layak diuji
-            berdasarkan kondisi bisnis Anda saat ini.
+            Growth Diagnosis ini membantu Anda mendapatkan perspektif yang lebih
+            jelas mengenai kondisi bisnis saat ini, area yang menjadi
+            bottleneck, serta prioritas yang dapat Anda fokuskan untuk langkah
+            berikutnya.
           </p>
         </div>
       </div>
@@ -602,6 +705,16 @@ function BusinessStep({ form, updateField }) {
       />
 
       <div className="mt-10 space-y-6">
+        <div>
+          <FieldLabel>Nama brand atau perusahaan</FieldLabel>
+
+          <TextInput
+            value={form.brandName}
+            onChange={(value) => updateField("brandName", value)}
+            placeholder="Contoh: ABC Dental Clinic / PT ABC Indonesia"
+          />
+        </div>
+
         <div>
           <FieldLabel>Jenis bisnis Anda</FieldLabel>
 
@@ -905,7 +1018,7 @@ function ContactStep({ form, updateField }) {
       <StepHeading
         eyebrow="06 / Kontak"
         title="Ke mana kami bisa mengirim hasil audit Anda?"
-        description="Gunakan nomor WhatsApp yang aktif. Hasil audit akan langsung ditampilkan setelah Anda mengirim form."
+        description="Gunakan kontak yang aktif. Hasil audit akan langsung ditampilkan setelah Anda mengirim form."
       />
 
       <div className="mt-10 space-y-6">
@@ -938,6 +1051,16 @@ function ContactStep({ form, updateField }) {
             onChange={(value) => updateField("email", value)}
             placeholder="nama@bisnis.com"
             type="email"
+          />
+        </div>
+
+        <div>
+          <FieldLabel optional>Instagram atau Facebook bisnis</FieldLabel>
+
+          <TextInput
+            value={form.socialProfile}
+            onChange={(value) => updateField("socialProfile", value)}
+            placeholder="Contoh: @namabrand atau facebook.com/namabrand"
           />
         </div>
       </div>

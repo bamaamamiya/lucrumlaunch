@@ -19,7 +19,7 @@ export default function GrowthAudit() {
           <Sparkles size={14} className="text-gray-500" />
 
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">
-            Free Growth Audit
+            Free Growth Diagnosis
           </p>
 
           <Sparkles size={14} className="text-gray-500" />
@@ -44,7 +44,7 @@ export default function GrowthAudit() {
             href="/growth-audit"
             className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-semibold text-black transition-all duration-300 hover:bg-gray-200"
           >
-            Start My Free Growth Audit
+            Start My Free Growth Diagnosis
 
             <ArrowRight
               size={17}

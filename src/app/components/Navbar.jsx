@@ -59,7 +59,7 @@ export default function Navbar() {
               href="/growth-audit"
               className="rounded-full border border-white/[0.08] bg-white/[0.06] px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/[0.18] hover:bg-white hover:text-black"
             >
-              Free Growth Audit
+              Free Growth Diagnosis
             </Link>
           </div>
 
@@ -106,7 +106,7 @@ export default function Navbar() {
             onClick={() => setMenuOpen(false)}
             className="mt-3 rounded-full bg-white px-5 py-3 text-center text-sm font-semibold text-black transition-colors hover:bg-gray-200"
           >
-            Get Your Free Growth Audit
+            Get Your Free Growth Diagnosis
           </Link>
         </div>
       </div>

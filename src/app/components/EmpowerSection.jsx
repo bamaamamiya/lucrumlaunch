@@ -38,7 +38,7 @@ export default function EmpowerSection() {
               href="/growth-audit"
               className="group inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.04] px-7 py-4 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/[0.2] hover:bg-white hover:text-black"
             >
-              Get Your Free Growth Audit
+              Get Your Free Growth Diagnosis
 
               <ArrowUpRight
                 size={17}

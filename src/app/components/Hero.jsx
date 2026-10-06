@@ -41,10 +41,7 @@ export default function Hero() {
 
           {/* Heading */}
           <h1 className="max-w-3xl text-4xl font-bold leading-[1.03] tracking-[-0.035em] text-white sm:text-5xl md:text-6xl lg:text-[68px]">
-            Bangun{" "}
-            <span className="text-gray-500">
-              acquisition system
-            </span>{" "}
+            Bangun <span className="text-gray-500">acquisition system</span>{" "}
             yang lebih terukur.
           </h1>
 
@@ -61,7 +58,7 @@ export default function Hero() {
               href="/growth-audit"
               className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3.5 font-semibold text-black transition-all duration-300 hover:bg-gray-200 hover:shadow-[0_0_30px_rgba(255,255,255,0.12)]"
             >
-              Dapatkan Free Growth Audit
+              Dapatkan Free Growth Diagnosis
             </Link>
 
             <Link
@@ -146,9 +143,7 @@ export default function Hero() {
                     </p>
                   </div>
 
-                  <span className="text-[10px] text-gray-500">
-                    +28.4%
-                  </span>
+                  <span className="text-[10px] text-gray-500">+28.4%</span>
                 </div>
 
                 {/* Chart Container */}
@@ -183,11 +178,7 @@ export default function Hero() {
                           stopOpacity="0.10"
                         />
 
-                        <stop
-                          offset="100%"
-                          stopColor="white"
-                          stopOpacity="0"
-                        />
+                        <stop offset="100%" stopColor="white" stopOpacity="0" />
                       </linearGradient>
                     </defs>
 

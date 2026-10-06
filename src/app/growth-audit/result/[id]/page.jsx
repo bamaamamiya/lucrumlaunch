@@ -1,5 +1,5 @@
 "use client";
-
+// growth-audit/result/[id]/page.jsx
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { db } from "@/lib/firebase";
+import GrowthAuditPDF from "./GrowthAuditPDF";
 
 function SectionLabel({ children }) {
   return (
@@ -27,12 +28,7 @@ function SectionLabel({ children }) {
   );
 }
 
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  description,
-}) {
+function MetricCard({ icon: Icon, label, value, description }) {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 backdrop-blur-xl">
       <div className="flex items-start justify-between">
@@ -47,17 +43,12 @@ function MetricCard({
         </div>
 
         <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.035] text-gray-400">
-          <Icon
-            size={17}
-            strokeWidth={1.7}
-          />
+          <Icon size={17} strokeWidth={1.7} />
         </div>
       </div>
 
       {description && (
-        <p className="mt-4 text-sm leading-6 text-gray-500">
-          {description}
-        </p>
+        <p className="mt-4 text-sm leading-6 text-gray-500">{description}</p>
       )}
     </div>
   );
@@ -82,26 +73,20 @@ function ErrorScreen() {
     <main className="flex min-h-screen items-center justify-center bg-[#0D0D0D] px-6 text-white">
       <div className="max-w-md text-center">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03]">
-          <CircleAlert
-            size={22}
-            className="text-gray-400"
-          />
+          <CircleAlert size={22} className="text-gray-400" />
         </div>
 
-        <h1 className="mt-7 text-2xl font-semibold">
-          Audit tidak ditemukan.
-        </h1>
+        <h1 className="mt-7 text-2xl font-semibold">Audit tidak ditemukan.</h1>
 
         <p className="mt-4 text-sm leading-7 text-gray-500">
-          Link audit mungkin sudah tidak valid atau
-          data belum tersedia.
+          Link audit mungkin sudah tidak valid atau data belum tersedia.
         </p>
 
         <Link
           href="/growth-audit"
           className="mt-7 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition-colors hover:bg-gray-200"
         >
-          Mulai Growth Audit
+          Mulai Growth Diagnosis
           <ArrowRight size={16} />
         </Link>
       </div>
@@ -121,13 +106,7 @@ export default function GrowthAuditResultPage() {
       if (!params?.id) return;
 
       try {
-        const snapshot = await getDoc(
-          doc(
-            db,
-            "auditResults",
-            params.id
-          )
-        );
+        const snapshot = await getDoc(doc(db, "auditResults", params.id));
 
         if (!snapshot.exists()) {
           setError(true);
@@ -139,10 +118,7 @@ export default function GrowthAuditResultPage() {
           ...snapshot.data(),
         });
       } catch (err) {
-        console.error(
-          "Growth Audit result error:",
-          err
-        );
+        console.error("Growth Audit result error:", err);
 
         setError(true);
       } finally {
@@ -161,29 +137,23 @@ export default function GrowthAuditResultPage() {
     return <ErrorScreen />;
   }
 
-  const businessStage =
-    audit.businessStage;
+  const businessStage = audit.businessStage;
 
-  const acquisitionStatus =
-    audit.acquisitionStatus;
+  const acquisitionStatus = audit.acquisitionStatus;
 
-  const bottleneck =
-    audit.primaryBottleneck;
+  const bottleneck = audit.primaryBottleneck;
 
-  const readiness =
-    audit.readiness;
+  const readiness = audit.readiness;
 
-  const recommendations =
-    audit.recommendations || [];
+  const recommendations = audit.recommendations || [];
+
+  const qualified = audit.qualified === true;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0D0D0D] text-white">
       {/* BACKGROUND */}
 
-      <div
-        className="pointer-events-none fixed inset-0"
-        aria-hidden="true"
-      >
+      <div className="pointer-events-none fixed inset-0" aria-hidden="true">
         <div className="absolute left-1/2 top-[-300px] h-[600px] w-[800px] -translate-x-1/2 rounded-full bg-white/[0.018] blur-[150px]" />
 
         <div className="absolute inset-0 opacity-[0.018]">
@@ -209,29 +179,22 @@ export default function GrowthAuditResultPage() {
 
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 flex items-center justify-center gap-3">
-            <CheckCircle2
-              size={15}
-              className="text-gray-400"
-            />
+            <CheckCircle2 size={15} className="text-gray-400" />
 
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">
-              Your Growth Audit
+              Hasil Growth Diagnosis
             </p>
           </div>
 
           <h1 className="text-4xl font-semibold leading-[1.05] tracking-[-0.04em] md:text-6xl">
-            Here's what we found
-            <span className="text-gray-500">
-              {" "}
-              about your growth.
-            </span>
+            Ini yang kami temukan
+            <span className="text-gray-500"> dari kondisi growth Anda.</span>
           </h1>
 
           <p className="mx-auto mt-7 max-w-2xl text-base leading-8 text-gray-400 md:text-lg">
-            Berdasarkan informasi yang Anda
-            berikan, berikut adalah diagnosis awal
-            mengenai acquisition dan growth bisnis
-            Anda.
+            Berdasarkan informasi yang Anda berikan, berikut adalah diagnosis
+            awal mengenai posisi bisnis, acquisition, dan area pertumbuhan yang
+            paling perlu diperhatikan.
           </p>
         </div>
 
@@ -240,9 +203,7 @@ export default function GrowthAuditResultPage() {
         <div className="mx-auto mt-14 max-w-4xl rounded-3xl border border-white/[0.08] bg-white/[0.025] p-7 backdrop-blur-xl md:p-10">
           <div className="flex flex-col gap-10 md:flex-row md:items-center md:justify-between">
             <div>
-              <SectionLabel>
-                Growth Readiness
-              </SectionLabel>
+              <SectionLabel>Growth Readiness</SectionLabel>
 
               <h2 className="text-3xl font-semibold tracking-[-0.03em]">
                 {readiness.label}
@@ -272,41 +233,33 @@ export default function GrowthAuditResultPage() {
             icon={Target}
             label="Business Stage"
             value={businessStage.label}
-            description={
-              businessStage.description
-            }
+            description={businessStage.description}
           />
 
           <MetricCard
             icon={TrendingUp}
             label="Acquisition"
             value={acquisitionStatus.label}
-            description={
-              acquisitionStatus.description
-            }
+            description={acquisitionStatus.description}
           />
 
           <MetricCard
             icon={CircleAlert}
             label="Primary Bottleneck"
             value={bottleneck.label}
-            description={
-              bottleneck.description
-            }
+            description={bottleneck.description}
           />
         </div>
 
         {/* PRIMARY DIAGNOSIS */}
 
         <section className="mt-24">
-          <SectionLabel>
-            Primary Diagnosis
-          </SectionLabel>
+          <SectionLabel>Primary Diagnosis</SectionLabel>
 
           <div className="grid gap-10 md:grid-cols-[1fr_0.8fr] md:items-start">
             <div>
               <h2 className="text-3xl font-semibold leading-tight tracking-[-0.03em] md:text-4xl">
-                Your biggest opportunity is
+                Area dengan peluang terbesar saat ini adalah
                 <span className="text-gray-500">
                   {" "}
                   {bottleneck.label.toLowerCase()}.
@@ -330,10 +283,7 @@ export default function GrowthAuditResultPage() {
 
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-7">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.035]">
-                <Gauge
-                  size={18}
-                  className="text-gray-300"
-                />
+                <Gauge size={18} className="text-gray-300" />
               </div>
 
               <h3 className="mt-6 text-xl font-semibold">
@@ -341,10 +291,9 @@ export default function GrowthAuditResultPage() {
               </h3>
 
               <p className="mt-4 text-sm leading-7 text-gray-500">
-                Menambah budget marketing sebelum
-                mengetahui bottleneck utama dapat
-                membuat biaya acquisition meningkat
-                tanpa menyelesaikan masalah conversion.
+                Menambah budget marketing sebelum mengetahui bottleneck utama
+                dapat membuat biaya acquisition meningkat tanpa menyelesaikan
+                masalah conversion.
               </p>
             </div>
           </div>
@@ -353,86 +302,112 @@ export default function GrowthAuditResultPage() {
         {/* RECOMMENDATIONS */}
 
         <section className="mt-24">
-          <SectionLabel>
-            Recommended Next Steps
-          </SectionLabel>
+          <SectionLabel>Rekomendasi Langkah Berikutnya</SectionLabel>
 
           <h2 className="text-3xl font-semibold tracking-[-0.03em] md:text-4xl">
-            Where we would focus first.
+            Fokus yang kami sarankan untuk Anda mulai terlebih dahulu.
           </h2>
 
           <div className="mt-10 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
-            {recommendations.map(
-              (item, index) => (
-                <div
-                  key={`${item.number}-${index}`}
-                  className="group relative border-b border-white/[0.07] p-7 last:border-b-0 md:p-8"
-                >
-                  <div className="grid gap-5 md:grid-cols-[60px_220px_1fr] md:items-center">
-                    <span className="text-xs font-medium tracking-[0.18em] text-gray-600">
-                      {item.number}
-                    </span>
+            {recommendations.map((item, index) => (
+              <div
+                key={`${item.number}-${index}`}
+                className="group relative border-b border-white/[0.07] p-7 last:border-b-0 md:p-8"
+              >
+                <div className="grid gap-5 md:grid-cols-[60px_220px_1fr] md:items-center">
+                  <span className="text-xs font-medium tracking-[0.18em] text-gray-600">
+                    {item.number}
+                  </span>
 
-                    <h3 className="text-lg font-semibold">
-                      {item.title}
-                    </h3>
+                  <h3 className="text-lg font-semibold">{item.title}</h3>
 
-                    <p className="text-sm leading-7 text-gray-500">
-                      {item.description}
-                    </p>
-                  </div>
-
-                  <div className="absolute bottom-0 left-0 h-px w-0 bg-white/30 transition-all duration-500 group-hover:w-full" />
+                  <p className="text-sm leading-7 text-gray-500">
+                    {item.description}
+                  </p>
                 </div>
-              )
-            )}
+
+                <div className="absolute bottom-0 left-0 h-px w-0 bg-white/30 transition-all duration-500 group-hover:w-full" />
+              </div>
+            ))}
           </div>
         </section>
 
         {/* CTA */}
 
-        <section className="mt-24 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.025] px-7 py-14 text-center backdrop-blur-xl md:px-12 md:py-20">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-600">
-            Go Deeper
-          </p>
+        {qualified ? (
+          <section className="mt-24 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.025] px-7 py-14 text-center backdrop-blur-xl md:px-12 md:py-20">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-600">
+              Langkah Selanjutnya
+            </p>
 
-          <h2 className="mx-auto mt-5 max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.035em] md:text-5xl">
-            Want us to look deeper
-            <span className="text-gray-500">
-              {" "}
-              at your growth system?
-            </span>
-          </h2>
+            <h2 className="mx-auto mt-5 max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.035em] md:text-5xl">
+              Diagnosisnya sudah jelas.
+              <span className="text-gray-500">
+                {" "}
+                Sekarang mari bahas cara menerapkannya.
+              </span>
+            </h2>
 
-          <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-gray-500 md:text-base">
-            Audit ini adalah diagnosis awal
-            berdasarkan informasi yang Anda berikan.
-            Dalam Growth Call, kita bisa membedah
-            acquisition, conversion, economics, dan
-            peluang improvement secara lebih spesifik.
-          </p>
+            <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-gray-500 md:text-base">
+              Berdasarkan jawaban Anda, bisnis Anda memiliki fondasi yang cukup
+              untuk membahas strategi pertumbuhan lebih lanjut. Dalam sesi 30
+              menit ini, kami akan memahami kondisi bisnis Anda secara lebih
+              mendalam, mendiskusikan peluang yang ada, dan melihat apakah
+              Lucratus merupakan partner yang tepat untuk membantu
+              implementasinya.
+            </p>
 
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="https://calendly.com/agencylucratus/discovery-call"
-              className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-semibold text-black transition-colors hover:bg-gray-200"
-            >
-              Book a 30-Minute Growth Call
+            <div className="mt-9 flex justify-center">
+              <Link
+                href="https://calendly.com/agencylucratus/discovery-call"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-semibold text-black transition-colors hover:bg-gray-200"
+              >
+                Jadwalkan Growth Call 30 Menit
+                <ArrowRight
+                  size={17}
+                  className="transition-transform duration-300 group-hover:translate-x-1"
+                />
+              </Link>
+            </div>
 
-              <ArrowRight
-                size={17}
-                className="transition-transform duration-300 group-hover:translate-x-1"
-              />
-            </Link>
+            <p className="mt-6 text-xs text-gray-600">
+              Tanpa kewajiban. Sesi ini digunakan untuk memahami bisnis Anda dan
+              menentukan apakah ada peluang kerja sama yang tepat.
+            </p>
+          </section>
+        ) : (
+          <section className="mt-24 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.025] px-7 py-14 text-center backdrop-blur-xl md:px-12 md:py-20">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-600">
+              Langkah Berikutnya
+            </p>
 
-            <Link
-              href="/"
-              className="rounded-full border border-white/[0.08] bg-white/[0.035] px-7 py-4 text-sm font-medium text-gray-300 transition-colors hover:bg-white/[0.07] hover:text-white"
-            >
-              Back to Lucratus
-            </Link>
-          </div>
-        </section>
+            <h2 className="mx-auto mt-5 max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.035em] md:text-5xl">
+              Perkuat fondasinya terlebih dahulu.
+              <span className="text-gray-500">
+                {" "}
+                Setelah itu, baru pikirkan scaling.
+              </span>
+            </h2>
+
+            <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-gray-500 md:text-base">
+              Berdasarkan jawaban Anda, ada beberapa fundamental yang sebaiknya
+              diperkuat sebelum meningkatkan marketing spend atau masuk ke tahap
+              partnership. Gunakan diagnosis dan rekomendasi di atas sebagai
+              panduan untuk menentukan prioritas berikutnya.
+            </p>
+
+            <div className="mt-9 flex justify-center">
+              <GrowthAuditPDF audit={audit} />
+            </div>
+
+            <p className="mx-auto mt-6 max-w-lg text-xs leading-6 text-gray-600">
+              Download Growth Playbook Anda untuk mendapatkan diagnosis,
+              rekomendasi, dan arah tindakan yang lebih praktis.
+            </p>
+          </section>
+        )}
       </div>
     </main>
   );

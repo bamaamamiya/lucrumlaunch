@@ -48,12 +48,10 @@ export function generateAudit(form) {
   return {
     auditScore,
     leadScore,
-
     businessStage,
     acquisitionStatus,
     primaryBottleneck,
     readiness,
-
     recommendations,
   };
 }
@@ -84,7 +82,7 @@ function clamp(value, min = 0, max = 100) {
 
 /*
 |--------------------------------------------------------------------------
-| BUSINESS STAGE
+| TAHAP BISNIS
 |--------------------------------------------------------------------------
 */
 
@@ -97,9 +95,9 @@ function getBusinessStage({ monthlyRevenue }) {
   ) {
     return {
       key: "early",
-      label: "Early Stage",
+      label: "Tahap Awal",
       description:
-        "Bisnis masih berada pada tahap membangun traction dan memvalidasi sistem akuisisi yang konsisten.",
+        "Bisnis masih berada pada tahap membangun traction, memvalidasi penawaran, dan menemukan sistem akuisisi yang dapat berjalan secara konsisten.",
     };
   }
 
@@ -111,9 +109,9 @@ function getBusinessStage({ monthlyRevenue }) {
   ) {
     return {
       key: "traction",
-      label: "Traction Stage",
+      label: "Tahap Traction",
       description:
-        "Bisnis sudah memiliki traction dan mulai membutuhkan sistem akuisisi yang lebih konsisten.",
+        "Bisnis sudah mulai memiliki traction dan membutuhkan sistem akuisisi serta konversi yang lebih konsisten untuk menghasilkan pertumbuhan.",
     };
   }
 
@@ -125,32 +123,32 @@ function getBusinessStage({ monthlyRevenue }) {
   ) {
     return {
       key: "growth",
-      label: "Growth Stage",
+      label: "Tahap Pertumbuhan",
       description:
-        "Bisnis sudah memiliki basis revenue yang cukup untuk mengoptimalkan acquisition dan conversion secara lebih agresif.",
+        "Bisnis sudah memiliki basis pendapatan yang cukup untuk mulai mengoptimalkan akuisisi, konversi, dan efisiensi pemasaran secara lebih agresif.",
     };
   }
 
   if (revenue.includes("rp250jt")) {
     return {
       key: "scale",
-      label: "Scale Stage",
+      label: "Tahap Scale",
       description:
-        "Bisnis sudah berada pada level di mana fokus utama seharusnya adalah efficiency, predictability, dan scaling.",
+        "Bisnis sudah berada pada level di mana fokus utama seharusnya bergeser ke efisiensi, prediktabilitas, dan peningkatan volume secara terkontrol.",
     };
   }
 
   return {
     key: "early",
-    label: "Early Stage",
+    label: "Tahap Awal",
     description:
-      "Bisnis masih membutuhkan validasi dan pembangunan sistem growth yang lebih terstruktur.",
+      "Bisnis masih membutuhkan validasi dan pembangunan sistem pertumbuhan yang lebih terstruktur sebelum melakukan scale.",
   };
 }
 
 /*
 |--------------------------------------------------------------------------
-| ACQUISITION STATUS
+| KONDISI AKUISISI
 |--------------------------------------------------------------------------
 */
 
@@ -168,7 +166,7 @@ function getAcquisitionStatus({
       key: "not_running",
       label: "Belum Aktif Beriklan",
       description:
-        "Bisnis belum memiliki acquisition engine berbayar yang sedang berjalan.",
+        "Bisnis belum memiliki sistem akuisisi berbayar yang sedang berjalan untuk menghasilkan traffic dan calon pelanggan secara konsisten.",
     };
   }
 
@@ -177,7 +175,7 @@ function getAcquisitionStatus({
       key: "testing",
       label: "Pernah Beriklan",
       description:
-        "Bisnis sudah memiliki pengalaman menggunakan paid acquisition, tetapi sistemnya belum berjalan secara konsisten.",
+        "Bisnis sudah memiliki pengalaman menggunakan iklan berbayar, tetapi sistem akuisisinya belum berjalan secara konsisten.",
     };
   }
 
@@ -196,26 +194,26 @@ function getAcquisitionStatus({
     ) {
       return {
         key: "active_system",
-        label: "Active Acquisition",
+        label: "Akuisisi Aktif",
         description:
-          "Bisnis sudah memiliki paid acquisition dan jalur conversion yang dapat dioptimalkan lebih lanjut.",
+          "Bisnis sudah memiliki iklan berbayar dan jalur konversi yang dapat dioptimalkan lebih lanjut untuk meningkatkan kualitas dan efisiensi hasil.",
       };
     }
 
     return {
       key: "active",
-      label: "Active Acquisition",
+      label: "Akuisisi Aktif",
       description:
-        "Paid acquisition sudah berjalan, tetapi conversion path masih memiliki ruang untuk diperkuat.",
+        "Iklan berbayar sudah berjalan, tetapi jalur konversi masih memiliki ruang yang cukup besar untuk diperkuat.",
     };
   }
 
   if (adsStatus === "ya") {
     return {
       key: "active",
-      label: "Active Acquisition",
+      label: "Akuisisi Aktif",
       description:
-        "Bisnis sedang menjalankan acquisition, tetapi masih ada ruang untuk memperkuat sistem dan conversion flow.",
+        "Bisnis sedang menjalankan iklan, tetapi masih ada ruang untuk memperkuat sistem akuisisi dan proses konversinya.",
     };
   }
 
@@ -223,13 +221,13 @@ function getAcquisitionStatus({
     key: "unknown",
     label: "Perlu Validasi",
     description:
-      "Data acquisition belum cukup untuk menentukan kondisi secara spesifik.",
+      "Informasi mengenai sistem akuisisi belum cukup untuk menentukan kondisi bisnis secara lebih spesifik.",
   };
 }
 
 /*
 |--------------------------------------------------------------------------
-| PRIMARY BOTTLENECK
+| BOTTLENECK UTAMA
 |--------------------------------------------------------------------------
 */
 
@@ -247,97 +245,94 @@ function getPrimaryBottleneck({ biggestBottleneck = [] }) {
   const mapping = {
     "Traffic / leads masih kurang": {
       key: "traffic",
-      label: "Traffic & Lead Generation",
+      label: "Traffic & Perolehan Lead",
       description:
-        "Volume calon customer belum cukup untuk menghasilkan pertumbuhan yang konsisten.",
+        "Volume calon pelanggan yang masuk belum cukup untuk menghasilkan pertumbuhan yang konsisten.",
       recommendation:
-        "Fokus pertama adalah membangun acquisition system yang mampu menghasilkan traffic dan leads secara konsisten.",
+        "Prioritas pertama adalah membangun sistem akuisisi yang mampu menghasilkan traffic dan lead secara konsisten dengan biaya yang dapat dikendalikan.",
     },
 
     "Kualitas leads": {
       key: "lead_quality",
-      label: "Lead Quality",
+      label: "Kualitas Lead",
       description:
-        "Traffic mungkin sudah masuk, tetapi kualitas calon customer belum cukup sesuai dengan target bisnis.",
+        "Traffic mungkin sudah masuk, tetapi kualitas calon pelanggan belum cukup sesuai dengan target bisnis.",
       recommendation:
-        "Perbaiki targeting, positioning, offer, creative, dan qualification agar traffic yang masuk lebih relevan.",
+        "Perbaiki targeting, positioning, penawaran, materi iklan, dan proses kualifikasi agar traffic yang masuk lebih relevan dengan bisnis.",
     },
 
     "Conversion rate rendah": {
       key: "conversion",
-      label: "Conversion",
+      label: "Tingkat Konversi",
       description:
-        "Masalah utama kemungkinan berada setelah traffic masuk, bukan semata-mata pada jumlah traffic.",
+        "Masalah utama kemungkinan berada setelah traffic masuk, bukan semata-mata pada jumlah traffic yang dihasilkan.",
       recommendation:
-        "Audit funnel, offer, landing page, WhatsApp, dan sales process untuk menemukan titik drop-off.",
+        "Periksa funnel, penawaran, landing page, WhatsApp, dan proses penjualan untuk menemukan titik di mana calon pelanggan berhenti melanjutkan.",
     },
 
     "Biaya mendapatkan customer terlalu tinggi": {
       key: "cac",
-      label: "Customer Acquisition Cost",
+      label: "Biaya Akuisisi Pelanggan",
       description:
-        "Biaya mendapatkan customer perlu diturunkan agar acquisition dapat di-scale dengan economics yang sehat.",
+        "Biaya untuk mendapatkan pelanggan masih terlalu tinggi sehingga ruang untuk melakukan scale menjadi lebih terbatas.",
       recommendation:
-        "Audit CAC, conversion rate, average order value, creative, targeting, dan funnel sebelum meningkatkan budget.",
+        "Evaluasi biaya akuisisi, tingkat konversi, nilai transaksi, materi iklan, targeting, dan funnel sebelum meningkatkan anggaran.",
     },
 
     "Creative / materi iklan": {
       key: "creative",
-      label: "Creative Performance",
+      label: "Performa Materi Iklan",
       description:
-        "Creative kemungkinan menjadi salah satu faktor utama yang membatasi volume dan efficiency acquisition.",
+        "Materi iklan kemungkinan menjadi salah satu faktor utama yang membatasi volume dan efisiensi akuisisi.",
       recommendation:
-        "Bangun creative testing system dengan beberapa angle, hook, format, dan offer.",
+        "Bangun sistem pengujian materi iklan dengan beberapa pendekatan, hook, format, pesan, dan penawaran untuk menemukan kombinasi yang paling efektif.",
     },
 
     "Landing page / funnel": {
       key: "funnel",
       label: "Landing Page & Funnel",
       description:
-        "Traffic yang masuk berpotensi belum dikonversikan secara maksimal karena friction di funnel.",
+        "Traffic yang masuk berpotensi belum dikonversikan secara maksimal karena masih terdapat hambatan dalam alur funnel.",
       recommendation:
-        "Audit message match, trust, offer, CTA, social proof, dan conversion flow.",
+        "Periksa kesesuaian pesan, kepercayaan, penawaran, CTA, bukti sosial, dan hambatan lain yang dapat mengurangi kemungkinan calon pelanggan melakukan tindakan.",
     },
 
     "WhatsApp / proses sales": {
       key: "sales",
-      label: "WhatsApp & Sales Process",
+      label: "WhatsApp & Proses Penjualan",
       description:
-        "Potential customer sudah masuk, tetapi proses follow-up dan closing dapat menjadi bottleneck utama.",
+        "Calon pelanggan sudah masuk, tetapi proses follow-up dan penjualan berpotensi menjadi hambatan utama dalam menghasilkan customer.",
       recommendation:
-        "Bangun struktur qualification, follow-up, objection handling, dan closing yang lebih konsisten.",
+        "Bangun struktur kualifikasi, response, follow-up, penanganan keberatan, dan proses closing yang lebih konsisten.",
     },
 
     "Belum punya cukup data": {
       key: "data",
-      label: "Data & Measurement",
+      label: "Data & Pengukuran",
       description:
         "Bisnis belum memiliki cukup data untuk menentukan bottleneck secara akurat.",
       recommendation:
-        "Bangun measurement system terlebih dahulu sebelum melakukan scaling.",
+        "Bangun sistem pengukuran terlebih dahulu agar traffic, lead, konversi, biaya akuisisi, dan pendapatan dapat dianalisis sebelum mengambil keputusan scale.",
     },
   };
 
-  return (
-    mapping[bottleneck] ||
-    getDefaultBottleneck()
-  );
+  return mapping[bottleneck] || getDefaultBottleneck();
 }
 
 function getDefaultBottleneck() {
   return {
     key: "diagnostic",
-    label: "Growth Diagnosis",
+    label: "Diagnosis Pertumbuhan",
     description:
-      "Diperlukan validasi lebih lanjut untuk menentukan bottleneck utama bisnis.",
+      "Diperlukan validasi lebih lanjut untuk menentukan hambatan utama dalam pertumbuhan bisnis.",
     recommendation:
-      "Mulai dari measurement dan acquisition data sebelum mengambil keputusan scaling.",
+      "Mulai dengan membangun pengukuran dan mengumpulkan data akuisisi sebelum mengambil keputusan mengenai scale.",
   };
 }
 
 /*
 |--------------------------------------------------------------------------
-| READINESS
+| KESIAPAN PERTUMBUHAN
 |--------------------------------------------------------------------------
 */
 
@@ -355,7 +350,7 @@ function getReadiness({
   const invest = normalize(investment);
 
   /*
-   * Paid acquisition maturity
+   * Kematangan akuisisi berbayar
    */
 
   if (ads === "ya") {
@@ -365,12 +360,10 @@ function getReadiness({
   }
 
   /*
-   * Revenue maturity
+   * Kematangan pendapatan
    */
 
-  if (
-    revenue.includes("rp250jt")
-  ) {
+  if (revenue.includes("rp250jt")) {
     score += 25;
   } else if (
     revenue.includes("rp100–250jt") ||
@@ -395,7 +388,7 @@ function getReadiness({
   }
 
   /*
-   * Existing ad spend
+   * Anggaran iklan yang sudah berjalan
    */
 
   if (spend.includes("rp50jt")) {
@@ -423,7 +416,7 @@ function getReadiness({
   }
 
   /*
-   * Investment readiness
+   * Kesiapan investasi
    */
 
   if (invest.includes("> rp10jt")) {
@@ -445,16 +438,16 @@ function getReadiness({
       key: "scale",
       label: "Siap Untuk Scale",
       description:
-        "Bisnis menunjukkan beberapa indikator yang cukup kuat untuk melakukan scaling secara lebih terstruktur.",
+        "Bisnis menunjukkan beberapa indikator yang cukup kuat untuk meningkatkan volume secara lebih terstruktur dan terkontrol.",
     };
   }
 
   if (score >= 55) {
     return {
       key: "growth",
-      label: "Siap Untuk Growth",
+      label: "Siap Untuk Bertumbuh",
       description:
-        "Bisnis memiliki foundation yang cukup untuk meningkatkan acquisition, tetapi economics dan conversion tetap perlu diperhatikan.",
+        "Bisnis memiliki fondasi yang cukup untuk meningkatkan akuisisi, tetapi ekonomi bisnis dan proses konversi tetap perlu diperhatikan.",
     };
   }
 
@@ -463,15 +456,15 @@ function getReadiness({
       key: "validation",
       label: "Siap Untuk Validasi",
       description:
-        "Ada potential untuk growth, tetapi beberapa bagian fundamental perlu diperkuat sebelum melakukan scaling agresif.",
+        "Bisnis memiliki potensi untuk berkembang, tetapi beberapa fondasi masih perlu diperkuat sebelum melakukan scale secara agresif.",
     };
   }
 
   return {
     key: "foundation",
-    label: "Perkuat Foundation",
+    label: "Perkuat Fondasi",
     description:
-      "Prioritas saat ini adalah membangun foundation acquisition dan conversion sebelum mengejar scale.",
+      "Prioritas saat ini adalah membangun fondasi akuisisi dan konversi yang lebih kuat sebelum mengejar peningkatan volume.",
   };
 }
 
@@ -489,10 +482,6 @@ function calculateAuditScore({
 }) {
   let score = 0;
 
-  /*
-   * Business stage
-   */
-
   const stagePoints = {
     early: 10,
     traction: 20,
@@ -502,10 +491,6 @@ function calculateAuditScore({
 
   score += stagePoints[businessStage.key] || 10;
 
-  /*
-   * Acquisition maturity
-   */
-
   const acquisitionPoints = {
     not_running: 5,
     testing: 12,
@@ -514,20 +499,11 @@ function calculateAuditScore({
     unknown: 5,
   };
 
-  score +=
-    acquisitionPoints[acquisitionStatus.key] || 5;
-
-  /*
-   * Conversion method
-   */
+  score += acquisitionPoints[acquisitionStatus.key] || 5;
 
   if (form.conversionMethod) {
     score += 5;
   }
-
-  /*
-   * Bottleneck clarity
-   */
 
   if (
     Array.isArray(form.biggestBottleneck) &&
@@ -536,17 +512,9 @@ function calculateAuditScore({
     score += 5;
   }
 
-  /*
-   * Goal clarity
-   */
-
   if (form.goal) {
     score += 5;
   }
-
-  /*
-   * Readiness
-   */
 
   const readinessPoints = {
     foundation: 5,
@@ -555,20 +523,11 @@ function calculateAuditScore({
     scale: 20,
   };
 
-  score +=
-    readinessPoints[readiness.key] || 5;
-
-  /*
-   * Investment clarity
-   */
+  score += readinessPoints[readiness.key] || 5;
 
   if (form.investment) {
     score += 5;
   }
-
-  /*
-   * Final normalization
-   */
 
   return clamp(score, 0, 100);
 }
@@ -578,14 +537,12 @@ function calculateAuditScore({
 | LEAD SCORE
 |--------------------------------------------------------------------------
 |
-| Ini berbeda dengan auditScore.
-|
 | auditScore:
-| Seberapa siap kondisi bisnis untuk growth.
+| Seberapa siap kondisi bisnis untuk bertumbuh.
 |
 | leadScore:
 | Seberapa menarik lead tersebut untuk ditindaklanjuti
-| secara sales/internal.
+| secara internal/sales.
 |--------------------------------------------------------------------------
 */
 
@@ -598,12 +555,10 @@ function calculateLeadScore({
   let score = 0;
 
   /*
-   * Revenue potential
+   * Potensi pendapatan
    */
 
-  const revenue = normalize(
-    form.monthlyRevenue
-  );
+  const revenue = normalize(form.monthlyRevenue);
 
   if (revenue.includes("rp250jt")) {
     score += 30;
@@ -632,12 +587,10 @@ function calculateLeadScore({
   }
 
   /*
-   * Investment
+   * Kesiapan investasi
    */
 
-  const investment = normalize(
-    form.investment
-  );
+  const investment = normalize(form.investment);
 
   if (investment.includes("> rp10jt")) {
     score += 30;
@@ -663,43 +616,35 @@ function calculateLeadScore({
   }
 
   /*
-   * Acquisition maturity
+   * Kematangan akuisisi
    */
 
   if (acquisitionStatus.key === "active_system") {
     score += 15;
-  } else if (
-    acquisitionStatus.key === "active"
-  ) {
+  } else if (acquisitionStatus.key === "active") {
     score += 12;
-  } else if (
-    acquisitionStatus.key === "testing"
-  ) {
+  } else if (acquisitionStatus.key === "testing") {
     score += 8;
   } else {
     score += 3;
   }
 
   /*
-   * Business maturity
+   * Kematangan bisnis
    */
 
   if (businessStage.key === "scale") {
     score += 15;
-  } else if (
-    businessStage.key === "growth"
-  ) {
+  } else if (businessStage.key === "growth") {
     score += 12;
-  } else if (
-    businessStage.key === "traction"
-  ) {
+  } else if (businessStage.key === "traction") {
     score += 8;
   } else {
     score += 3;
   }
 
   /*
-   * Goal clarity
+   * Kejelasan tujuan
    */
 
   if (form.goal) {
@@ -707,14 +652,12 @@ function calculateLeadScore({
   }
 
   /*
-   * Readiness bonus
+   * Bonus kesiapan
    */
 
   if (readiness.key === "scale") {
     score += 5;
-  } else if (
-    readiness.key === "growth"
-  ) {
+  } else if (readiness.key === "growth") {
     score += 3;
   }
 
@@ -723,7 +666,7 @@ function calculateLeadScore({
 
 /*
 |--------------------------------------------------------------------------
-| RECOMMENDATIONS
+| REKOMENDASI
 |--------------------------------------------------------------------------
 */
 
@@ -737,8 +680,8 @@ function generateRecommendations({
   const recommendations = [];
 
   /*
-   * Recommendation #1
-   * Always address the primary bottleneck.
+   * Rekomendasi #1
+   * Selalu mulai dari bottleneck utama.
    */
 
   recommendations.push({
@@ -749,108 +692,96 @@ function generateRecommendations({
   });
 
   /*
-   * Recommendation #2
-   * Measurement
+   * Rekomendasi #2
+   * Pengukuran
    */
 
   recommendations.push({
     number: 2,
-    title: "Bangun measurement yang jelas",
+    title: "Bangun pengukuran yang jelas",
     description:
-      "Pastikan traffic, leads, conversion, customer acquisition cost, dan revenue dapat dilacak agar keputusan growth dibuat berdasarkan data.",
+      "Pastikan traffic, lead, konversi, biaya akuisisi pelanggan, dan pendapatan dapat dilacak dengan jelas agar keputusan pertumbuhan dibuat berdasarkan data, bukan asumsi.",
   });
 
   /*
-   * Recommendation #3
-   * Depends on acquisition status.
+   * Rekomendasi #3
+   * Berdasarkan kondisi akuisisi.
    */
 
-  if (
-    acquisitionStatus.key === "not_running"
-  ) {
+  if (acquisitionStatus.key === "not_running") {
     recommendations.push({
       number: 3,
-      title: "Validasi acquisition channel",
+      title: "Validasi channel akuisisi",
       description:
-        "Mulai dengan controlled test untuk menemukan channel, audience, creative, dan offer yang mampu menghasilkan demand secara konsisten.",
+        "Mulai dengan pengujian yang terkontrol untuk menemukan channel, target audiens, materi iklan, dan penawaran yang mampu menghasilkan permintaan secara konsisten.",
     });
-  } else if (
-    acquisitionStatus.key === "testing"
-  ) {
+  } else if (acquisitionStatus.key === "testing") {
     recommendations.push({
       number: 3,
-      title: "Kembali ke testing terstruktur",
+      title: "Kembali ke pengujian yang terstruktur",
       description:
-        "Jangan langsung meningkatkan budget. Identifikasi creative, audience, offer, dan conversion flow yang paling menjanjikan terlebih dahulu.",
+        "Jangan langsung meningkatkan anggaran. Identifikasi terlebih dahulu materi iklan, audiens, penawaran, dan alur konversi yang menunjukkan potensi terbaik.",
     });
   } else {
     recommendations.push({
       number: 3,
-      title: "Optimalkan sebelum scale",
+      title: "Optimalkan sebelum meningkatkan anggaran",
       description:
-        "Cari kombinasi audience, creative, offer, dan conversion flow yang menghasilkan economics terbaik sebelum meningkatkan budget.",
+        "Cari kombinasi audiens, materi iklan, penawaran, dan alur konversi yang menghasilkan ekonomi bisnis terbaik sebelum meningkatkan anggaran secara signifikan.",
     });
   }
 
   /*
-   * Recommendation #4
-   * Conversion
+   * Rekomendasi #4
+   * Berdasarkan metode konversi.
    */
 
   if (
-    normalize(form.conversionMethod).includes(
-      "whatsapp"
-    )
+    normalize(form.conversionMethod).includes("whatsapp")
   ) {
     recommendations.push({
       number: 4,
       title: "Perkuat proses WhatsApp",
       description:
-        "Pastikan setiap lead mendapatkan response cepat, qualification yang jelas, follow-up, dan sales flow yang terstruktur.",
+        "Pastikan setiap lead mendapatkan respons yang cepat, proses kualifikasi yang jelas, follow-up yang konsisten, serta alur penjualan yang membantu mengubah percakapan menjadi pelanggan.",
     });
   } else if (
-    normalize(form.conversionMethod).includes(
-      "landing"
-    ) ||
-    normalize(form.conversionMethod).includes(
-      "website"
-    )
+    normalize(form.conversionMethod).includes("landing") ||
+    normalize(form.conversionMethod).includes("website")
   ) {
     recommendations.push({
       number: 4,
-      title: "Optimalkan conversion funnel",
+      title: "Optimalkan funnel konversi",
       description:
-        "Audit message match, trust, offer, CTA, social proof, dan friction pada landing page sebelum menambah traffic.",
+        "Periksa kesesuaian pesan, kepercayaan, penawaran, CTA, bukti sosial, dan hambatan lain pada landing page sebelum menambah traffic.",
     });
   } else {
     recommendations.push({
       number: 4,
-      title: "Perjelas conversion system",
+      title: "Perjelas sistem konversi",
       description:
-        "Pastikan ada proses yang konsisten untuk mengubah interest menjadi qualified lead dan akhirnya menjadi customer.",
+        "Pastikan terdapat proses yang konsisten untuk mengubah ketertarikan menjadi lead yang memenuhi kriteria dan kemudian menjadi pelanggan.",
     });
   }
 
   /*
-   * Recommendation #5
-   * Scaling guardrail
+   * Rekomendasi #5
+   * Batasan untuk scaling.
    */
 
-  if (
-    readiness.key === "scale"
-  ) {
+  if (readiness.key === "scale") {
     recommendations.push({
       number: 5,
-      title: "Scale dengan kontrol economics",
+      title: "Tingkatkan volume dengan menjaga economics",
       description:
-        "Bisnis sudah menunjukkan readiness yang cukup kuat. Fokus berikutnya adalah meningkatkan volume tanpa membiarkan CAC dan conversion efficiency memburuk.",
+        "Bisnis sudah menunjukkan kesiapan yang cukup kuat. Fokus berikutnya adalah meningkatkan volume tanpa membiarkan biaya akuisisi meningkat terlalu tinggi atau efisiensi konversi menurun.",
     });
   } else {
     recommendations.push({
       number: 5,
-      title: "Jangan scale terlalu cepat",
+      title: "Jangan melakukan scale terlalu cepat",
       description:
-        "Validasi funnel dan unit economics terlebih dahulu. Scaling traffic ke funnel yang belum stabil hanya akan memperbesar bottleneck.",
+        "Validasi funnel dan ekonomi bisnis terlebih dahulu. Meningkatkan traffic pada funnel yang belum stabil hanya akan memperbesar masalah yang sudah ada.",
     });
   }
 
