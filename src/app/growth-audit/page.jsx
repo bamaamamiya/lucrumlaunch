@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -29,6 +29,7 @@ const steps = [
   "Investasi",
   "Kontak",
 ];
+const AUDIT_STORAGE_KEY = "lucratus-growth-audit";
 
 const initialForm = {
   businessType: "",
@@ -55,11 +56,100 @@ const initialForm = {
 
 export default function GrowthAuditPage() {
   const router = useRouter();
-
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initialForm);
+  const [hydrated, setHydrated] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+  let restoredStep = 0;
+  let restoredForm = { ...initialForm };
+
+  try {
+    const saved = localStorage.getItem(AUDIT_STORAGE_KEY);
+
+    if (saved) {
+      const parsed = JSON.parse(saved);
+
+      if (typeof parsed.step === "number") {
+        restoredStep = Math.min(
+          Math.max(parsed.step, 0),
+          steps.length - 1
+        );
+      }
+
+      if (parsed.form) {
+        restoredForm = {
+          ...initialForm,
+          ...parsed.form,
+        };
+      }
+    }
+  } catch (error) {
+    console.error("Failed to restore growth audit:", error);
+  }
+
+  // Current entry = Step 0
+  window.history.replaceState(
+    {
+      auditStep: 0,
+    },
+    "",
+    window.location.pathname,
+  );
+
+  // Reconstruct history sampai step terakhir
+  for (let i = 1; i <= restoredStep; i++) {
+    window.history.pushState(
+      {
+        auditStep: i,
+      },
+      "",
+      window.location.pathname,
+    );
+  }
+
+  setStep(restoredStep);
+  setForm(restoredForm);
+  setHydrated(true);
+}, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const { name, whatsapp, email, ...draftForm } = form;
+
+    localStorage.setItem(
+      AUDIT_STORAGE_KEY,
+      JSON.stringify({
+        step,
+        form: draftForm,
+      }),
+    );
+  }, [step, form, hydrated]);
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const auditStep = event.state?.auditStep;
+
+      // Kalau history entry ini milik Growth Audit
+      if (typeof auditStep === "number") {
+        setStep(auditStep);
+
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
 
   const updateField = (field, value) => {
     setForm((prev) => ({
@@ -201,6 +291,7 @@ export default function GrowthAuditPage() {
        * =====================================================
        */
 
+      localStorage.removeItem(AUDIT_STORAGE_KEY);
       router.push(`/growth-audit/result/${auditRef.id}`);
     } catch (err) {
       console.error("Growth Audit submission error:", err);
@@ -214,26 +305,27 @@ export default function GrowthAuditPage() {
   const nextStep = () => {
     if (!canContinue()) return;
 
-    if (step < steps.length - 1) {
-      setStep((prev) => prev + 1);
+    const nextStepIndex = step + 1;
 
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    } else {
-      submitAudit();
-    }
+    window.history.pushState(
+      {
+        auditStep: nextStepIndex,
+      },
+      "",
+      window.location.pathname,
+    );
+
+    setStep(nextStepIndex);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   const previousStep = () => {
     if (step > 0) {
-      setStep((prev) => prev - 1);
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+      window.history.back();
     }
   };
 

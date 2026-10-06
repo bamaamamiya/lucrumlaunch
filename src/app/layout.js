@@ -13,8 +13,9 @@ const montserrat = Montserrat({
 });
 
 export const metadata = {
-  title: "Lucratus Agency",
-  description: "Facebook & Instagram Ads Agency",
+  title: "Lucratus Agency | Digital Marketing & Meta Ads Agency",
+  description:
+    "Lucratus Agency membantu bisnis mendapatkan lebih banyak leads, customers, dan revenue melalui strategi digital marketing dan Meta Ads.",
 };
 
 export default function RootLayout({ children }) {
@@ -23,13 +24,12 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="icon" href="/lucrum.png" type="image/png" sizes="any" />
         <link rel="apple-touch-icon" href="/lucrum-icon.png" />
-        <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
         <meta
           name="description"
-          content="Program coaching dropship 1-on-1, bantu kamu pecah telur dalam 7 hari lewat Meta Ads. Termasuk SOP riset produk, winning ads, retargeting, dan pendampingan langsung. Mulai dari Rp400.000 saja."
+          content="Lucratus Agency membantu bisnis mendapatkan lebih banyak leads, customers, dan revenue melalui strategi digital marketing dan Meta Ads."
         />
-				<Script id="microsoft-clarity" strategy="afterInteractive">
+        <Script id="microsoft-clarity" strategy="afterInteractive">
           {`
             (function(c,l,a,r,i,t,y){
                 c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
