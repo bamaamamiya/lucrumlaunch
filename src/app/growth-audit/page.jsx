@@ -11,11 +11,10 @@ import {
   CircleHelp,
 } from "lucide-react";
 import {
-  addDoc,
   collection,
   doc,
   serverTimestamp,
-  setDoc,
+  writeBatch,
 } from "firebase/firestore";
 
 import { generateAudit } from "@/lib/audit/engine";
@@ -285,128 +284,148 @@ export default function GrowthAuditPage() {
   };
 
   const submitAudit = async () => {
-  if (!canContinue() || submitting) return;
+    if (!canContinue() || submitting) return;
 
-  setSubmitting(true);
-  setError("");
+    setSubmitting(true);
+    setError("");
 
-  try {
-    console.log("[GrowthAudit] 1. Submit started");
+    try {
+      console.log("[GrowthAudit] 1. Submit started");
 
-    /*
-     * Generate diagnosis
-     */
-    const auditResult = generateAudit(form);
+      // =========================================
+      // 1. GENERATE DIAGNOSIS
+      // =========================================
 
-    console.log("[GrowthAudit] 2. Audit generated", auditResult);
+      const auditResult = generateAudit(form);
 
-    const qualification = calculateQualification(form);
+      console.log("[GrowthAudit] 2. Audit generated", auditResult);
 
-    console.log("[GrowthAudit] 3. Qualification calculated", qualification);
+      const qualification = calculateQualification(form);
 
-    /*
-     * =====================================================
-     * 1. SAVE COMPLETE LEAD DATA
-     * =====================================================
-     */
+      console.log("[GrowthAudit] 3. Qualification calculated", qualification);
 
-    const auditData = {
-      ...form,
+      // =========================================
+      // 2. GENERATE DOCUMENT ID LOCALLY
+      // =========================================
 
-      auditScore: auditResult.auditScore,
-      businessStage: auditResult.businessStage,
-      acquisitionStatus: auditResult.acquisitionStatus,
-      primaryBottleneck: auditResult.primaryBottleneck,
-      readiness: auditResult.readiness,
-      recommendations: auditResult.recommendations,
+      const auditRef = doc(collection(db, "growthAudits"));
+      const resultRef = doc(db, "auditResults", auditRef.id);
 
-      qualificationScore: qualification.score,
-      qualificationTier: qualification.tier,
-      qualified: qualification.qualified,
+      console.log("[GrowthAudit] 4. Generated audit ID:", auditRef.id);
 
-      salesStage: "new",
+      // =========================================
+      // 3. PREPARE LEAD DATA
+      // =========================================
 
-      contactStatus: "not_contacted",
-      lastContactedAt: null,
-      nextFollowUpAt: null,
+      const auditData = {
+        ...form,
 
-      proposalSentAt: null,
-      wonAt: null,
-      lostAt: null,
+        auditScore: auditResult.auditScore,
+        businessStage: auditResult.businessStage,
+        acquisitionStatus: auditResult.acquisitionStatus,
+        primaryBottleneck: auditResult.primaryBottleneck,
+        readiness: auditResult.readiness,
+        recommendations: auditResult.recommendations,
 
-      callBookedAt: null,
-      callCompletedAt: null,
+        qualificationScore: qualification.score,
+        qualificationTier: qualification.tier,
+        qualified: qualification.qualified,
 
-      source: "website",
-      formVersion: "v1",
+        // CRM lifecycle
+        salesStage: "new",
 
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
+        contactStatus: "not_contacted",
+        lastContactedAt: null,
+        nextFollowUpAt: null,
 
-    console.log("[GrowthAudit] 4. Writing growthAudits...");
+        proposalSentAt: null,
+        wonAt: null,
+        lostAt: null,
 
-    const auditRef = await addDoc(
-      collection(db, "growthAudits"),
-      auditData,
-    );
+        callBookedAt: null,
+        callCompletedAt: null,
 
-    console.log(
-      "[GrowthAudit] 5. growthAudits saved:",
-      auditRef.id,
-    );
+        source: "website",
+        formVersion: "v1",
 
-    /*
-     * =====================================================
-     * 2. SAVE PUBLIC RESULT
-     * =====================================================
-     */
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
 
-    const resultData = {
-      auditScore: auditResult.auditScore,
-      businessStage: auditResult.businessStage,
-      acquisitionStatus: auditResult.acquisitionStatus,
-      primaryBottleneck: auditResult.primaryBottleneck,
-      readiness: auditResult.readiness,
-      recommendations: auditResult.recommendations,
+      // =========================================
+      // 4. PREPARE PUBLIC RESULT
+      // =========================================
 
-      qualificationScore: qualification.score,
-      qualified: qualification.qualified,
-      qualificationTier: qualification.tier,
+      const resultData = {
+        auditScore: auditResult.auditScore,
+        businessStage: auditResult.businessStage,
+        acquisitionStatus: auditResult.acquisitionStatus,
+        primaryBottleneck: auditResult.primaryBottleneck,
+        readiness: auditResult.readiness,
+        recommendations: auditResult.recommendations,
 
-      auditId: auditRef.id,
+        qualificationScore: qualification.score,
+        qualified: qualification.qualified,
+        qualificationTier: qualification.tier,
 
-      createdAt: serverTimestamp(),
+        auditId: auditRef.id,
 
-      formVersion: "v1",
-    };
+        createdAt: serverTimestamp(),
 
-    console.log("[GrowthAudit] 6. Writing auditResults...");
+        formVersion: "v1",
+      };
 
-    await setDoc(
-      doc(db, "auditResults", auditRef.id),
-      resultData,
-    );
+      // =========================================
+      // 5. ATOMIC FIRESTORE WRITE
+      // =========================================
 
-    console.log("[GrowthAudit] 7. auditResults saved");
+      console.log("[GrowthAudit] 5. Preparing Firestore batch...");
 
-    localStorage.removeItem(AUDIT_STORAGE_KEY);
+      const batch = writeBatch(db);
 
-    console.log("[GrowthAudit] 8. Redirecting...");
+      batch.set(auditRef, auditData);
+      batch.set(resultRef, resultData);
 
-    router.push(`/growth-audit/result/${auditRef.id}`);
-  } catch (err) {
-    console.error("[GrowthAudit] SUBMIT ERROR:", err);
-    console.error("[GrowthAudit] ERROR CODE:", err?.code);
-    console.error("[GrowthAudit] ERROR MESSAGE:", err?.message);
+      console.log("[GrowthAudit] 6. Committing Firestore batch...");
 
-    setError(
-      `Terjadi masalah: ${err?.message || "Gagal mengirim diagnosis."}`,
-    );
+      // =========================================
+      // 6. TIMEOUT PROTECTION
+      // =========================================
 
-    setSubmitting(false);
-  }
-};
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(
+            new Error("Koneksi ke database terlalu lama. Silakan coba lagi."),
+          );
+        }, 15000);
+      });
+
+      await Promise.race([batch.commit(), timeoutPromise]);
+
+      console.log("[GrowthAudit] 7. Firestore batch committed:", auditRef.id);
+
+      // =========================================
+      // 7. CLEANUP
+      // =========================================
+
+      localStorage.removeItem(AUDIT_STORAGE_KEY);
+
+      console.log("[GrowthAudit] 8. Redirecting...");
+
+      router.push(`/growth-audit/result/${auditRef.id}`);
+    } catch (err) {
+      console.error("[GrowthAudit] SUBMIT ERROR:", err);
+      console.error("[GrowthAudit] ERROR CODE:", err?.code);
+      console.error("[GrowthAudit] ERROR MESSAGE:", err?.message);
+
+      setError(
+        err?.message ||
+          "Terjadi masalah saat mengirim diagnosis. Silakan coba lagi.",
+      );
+
+      setSubmitting(false);
+    }
+  };
 
   const nextStep = () => {
     if (!canContinue() || submitting) return;
@@ -568,9 +587,9 @@ export default function GrowthAuditPage() {
               type="button"
               onClick={previousStep}
               disabled={step === 0 || submitting}
-              className="inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-white disabled:pointer-events-none disabled:opacity-20"
+              className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-gray-500 transition-all hover:bg-white/[0.04] hover:text-white disabled:pointer-events-none disabled:opacity-20"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={15} />
               Kembali
             </button>
 
@@ -578,15 +597,35 @@ export default function GrowthAuditPage() {
               type="button"
               onClick={nextStep}
               disabled={!canContinue() || submitting}
-              className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition-all hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-30"
+              className={`
+      inline-flex items-center justify-center gap-2 rounded-full
+      px-5 py-3 text-sm font-semibold
+      transition-all duration-300
+      ${
+        step === steps.length - 1
+          ? "bg-white text-black shadow-[0_8px_30px_rgba(255,255,255,0.08)] hover:bg-gray-200 hover:shadow-[0_8px_35px_rgba(255,255,255,0.12)]"
+          : "bg-white text-black hover:bg-gray-200"
+      }
+      disabled:cursor-not-allowed disabled:opacity-30
+    `}
             >
-              {submitting
-                ? "Menganalisis..."
-                : step === steps.length - 1
-                  ? "Lihat Hasil Diagnosis"
-                  : "Lanjutkan"}
+              {submitting ? (
+                <>
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+                  Menganalisis...
+                </>
+              ) : (
+                <>
+                  {step === steps.length - 1
+                    ? "Lihat Hasil Diagnosis"
+                    : "Lanjutkan"}
 
-              {!submitting && <ArrowRight size={16} />}
+                  <ArrowRight
+                    size={15}
+                    className="transition-transform duration-300 group-hover:translate-x-0.5"
+                  />
+                </>
+              )}
             </button>
           </div>
         </div>

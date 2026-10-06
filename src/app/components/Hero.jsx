@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+import { ArrowRight } from "lucide-react";
 const metrics = [
   {
     label: "Ad Spend",
@@ -56,14 +56,18 @@ export default function Hero() {
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/growth-audit"
-              className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3.5 font-semibold text-black transition-all duration-300 hover:bg-gray-200 hover:shadow-[0_0_30px_rgba(255,255,255,0.12)]"
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3.5 text-sm font-semibold text-black transition-all duration-300 hover:bg-gray-200 hover:shadow-[0_0_30px_rgba(255,255,255,0.12)] sm:w-auto sm:px-6 sm:py-3.5 sm:text-base"
             >
               Dapatkan Free Growth Diagnosis
+              <ArrowRight
+                size={16}
+                className="transition-transform duration-300 group-hover:translate-x-0.5"
+              />
             </Link>
 
             <Link
               href="#how-we-work"
-              className="inline-flex items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.02] px-6 py-3.5 font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:border-white/25 hover:bg-white/[0.06]"
+              className="inline-flex w-full items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.02] px-5 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:border-white/25 hover:bg-white/[0.06] sm:w-auto sm:px-6 sm:py-3.5 sm:text-base"
             >
               Cara Kami Bekerja
             </Link>
