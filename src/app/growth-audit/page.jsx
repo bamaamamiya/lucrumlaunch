@@ -285,118 +285,128 @@ export default function GrowthAuditPage() {
   };
 
   const submitAudit = async () => {
-    if (!canContinue() || submitting) return;
+  if (!canContinue() || submitting) return;
 
-    setSubmitting(true);
-    setError("");
+  setSubmitting(true);
+  setError("");
 
-    try {
-      /*
-       * Generate automatic diagnosis
-       */
-      const auditResult = generateAudit(form);
+  try {
+    console.log("[GrowthAudit] 1. Submit started");
 
-      const qualification = calculateQualification(form);
+    /*
+     * Generate diagnosis
+     */
+    const auditResult = generateAudit(form);
 
-      /*
-       * =====================================================
-       * 1. SAVE COMPLETE LEAD DATA
-       * =====================================================
-       */
+    console.log("[GrowthAudit] 2. Audit generated", auditResult);
 
-      const auditData = {
-        ...form,
+    const qualification = calculateQualification(form);
 
-        // Audit
-        auditScore: auditResult.auditScore,
-        businessStage: auditResult.businessStage,
-        acquisitionStatus: auditResult.acquisitionStatus,
-        primaryBottleneck: auditResult.primaryBottleneck,
-        readiness: auditResult.readiness,
-        recommendations: auditResult.recommendations,
+    console.log("[GrowthAudit] 3. Qualification calculated", qualification);
 
-        qualificationScore: qualification.score,
-        qualificationTier: qualification.tier,
-        qualified: qualification.qualified,
+    /*
+     * =====================================================
+     * 1. SAVE COMPLETE LEAD DATA
+     * =====================================================
+     */
 
-        // CRM lifecycle
-        salesStage: "new",
+    const auditData = {
+      ...form,
 
-        contactStatus: "not_contacted",
-        lastContactedAt: null,
-        nextFollowUpAt: null,
+      auditScore: auditResult.auditScore,
+      businessStage: auditResult.businessStage,
+      acquisitionStatus: auditResult.acquisitionStatus,
+      primaryBottleneck: auditResult.primaryBottleneck,
+      readiness: auditResult.readiness,
+      recommendations: auditResult.recommendations,
 
-        proposalSentAt: null,
-        wonAt: null,
-        lostAt: null,
+      qualificationScore: qualification.score,
+      qualificationTier: qualification.tier,
+      qualified: qualification.qualified,
 
-        callBookedAt: null,
-        callCompletedAt: null,
+      salesStage: "new",
 
-        source: "website",
-        formVersion: "v1",
+      contactStatus: "not_contacted",
+      lastContactedAt: null,
+      nextFollowUpAt: null,
 
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      };
+      proposalSentAt: null,
+      wonAt: null,
+      lostAt: null,
 
-      const auditRef = await addDoc(collection(db, "growthAudits"), auditData);
+      callBookedAt: null,
+      callCompletedAt: null,
 
-      /*
-       * =====================================================
-       * 2. SAVE PUBLIC RESULT
-       *
-       * IMPORTANT:
-       * Tidak menyimpan:
-       * - nama
-       * - email
-       * - whatsapp
-       * - product
-       * - revenue
-       * - ad spend
-       *
-       * Hanya diagnosis.
-       * =====================================================
-       */
+      source: "website",
+      formVersion: "v1",
 
-      const resultData = {
-        auditScore: auditResult.auditScore,
-        businessStage: auditResult.businessStage,
-        acquisitionStatus: auditResult.acquisitionStatus,
-        primaryBottleneck: auditResult.primaryBottleneck,
-        readiness: auditResult.readiness,
-        recommendations: auditResult.recommendations,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
 
-        // Qualification
-        qualificationScore: qualification.score,
-        qualified: qualification.qualified,
-        qualificationTier: qualification.tier,
+    console.log("[GrowthAudit] 4. Writing growthAudits...");
 
-        auditId: auditRef.id,
+    const auditRef = await addDoc(
+      collection(db, "growthAudits"),
+      auditData,
+    );
 
-        createdAt: serverTimestamp(),
+    console.log(
+      "[GrowthAudit] 5. growthAudits saved:",
+      auditRef.id,
+    );
 
-        formVersion: "v1",
-      };
+    /*
+     * =====================================================
+     * 2. SAVE PUBLIC RESULT
+     * =====================================================
+     */
 
-      await setDoc(doc(db, "auditResults", auditRef.id), resultData);
+    const resultData = {
+      auditScore: auditResult.auditScore,
+      businessStage: auditResult.businessStage,
+      acquisitionStatus: auditResult.acquisitionStatus,
+      primaryBottleneck: auditResult.primaryBottleneck,
+      readiness: auditResult.readiness,
+      recommendations: auditResult.recommendations,
 
-      /*
-       * =====================================================
-       * 3. REDIRECT
-       * =====================================================
-       */
+      qualificationScore: qualification.score,
+      qualified: qualification.qualified,
+      qualificationTier: qualification.tier,
 
-      localStorage.removeItem(AUDIT_STORAGE_KEY);
-      router.push(`/growth-audit/result/${auditRef.id}`);
-    } catch (err) {
-      console.error("Growth Audit submission error:", err);
+      auditId: auditRef.id,
 
-      setError("Terjadi masalah saat mengirim diagnosis. Silakan coba lagi.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+      createdAt: serverTimestamp(),
+
+      formVersion: "v1",
+    };
+
+    console.log("[GrowthAudit] 6. Writing auditResults...");
+
+    await setDoc(
+      doc(db, "auditResults", auditRef.id),
+      resultData,
+    );
+
+    console.log("[GrowthAudit] 7. auditResults saved");
+
+    localStorage.removeItem(AUDIT_STORAGE_KEY);
+
+    console.log("[GrowthAudit] 8. Redirecting...");
+
+    router.push(`/growth-audit/result/${auditRef.id}`);
+  } catch (err) {
+    console.error("[GrowthAudit] SUBMIT ERROR:", err);
+    console.error("[GrowthAudit] ERROR CODE:", err?.code);
+    console.error("[GrowthAudit] ERROR MESSAGE:", err?.message);
+
+    setError(
+      `Terjadi masalah: ${err?.message || "Gagal mengirim diagnosis."}`,
+    );
+
+    setSubmitting(false);
+  }
+};
 
   const nextStep = () => {
     if (!canContinue() || submitting) return;
