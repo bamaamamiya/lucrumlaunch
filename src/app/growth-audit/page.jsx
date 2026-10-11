@@ -18,7 +18,9 @@ import {
 } from "firebase/firestore";
 
 import { generateAudit } from "@/lib/audit/engine";
-import { db } from "../../lib/firebase";
+
+import { calculateQualification } from "@/lib/audit/qualification";
+import { db } from "@/lib/firebase";
 
 const steps = [
   "Bisnis",
@@ -35,24 +37,37 @@ const initialForm = {
   brandName: "",
   product: "",
   averagePrice: "",
+  businessAge: "",
+  salesConsistency: "",
 
   currentlyRunningAds: "",
   acquisitionChannel: "",
   conversionMethod: "",
+  leadConversionRate: "",
 
   monthlyRevenue: "",
   monthlyAdSpend: "",
   dailyAdBudget: "",
+  revenueTrend: "",
 
   biggestBottleneck: [],
   goal: "",
+  urgency: "",
+  urgencyImpact: "",
 
   investment: "",
+  agencyFeeBudget: "",
+  mediaBudget: "",
+  decisionAuthority: "",
+  startTimeline: "",
+
+  auditIntent: "",
 
   name: "",
   whatsapp: "",
   email: "",
   socialProfile: "",
+  contactConsent: false,
 };
 
 export default function GrowthAuditPage() {
@@ -81,6 +96,7 @@ export default function GrowthAuditPage() {
           restoredForm = {
             ...initialForm,
             ...parsed.form,
+            contactConsent: false,
           };
         }
       }
@@ -116,7 +132,14 @@ export default function GrowthAuditPage() {
   useEffect(() => {
     if (!hydrated) return;
 
-    const { name, whatsapp, email, socialProfile, ...draftForm } = form;
+    const {
+      name,
+      whatsapp,
+      email,
+      socialProfile,
+      contactConsent,
+      ...draftForm
+    } = form;
 
     localStorage.setItem(
       AUDIT_STORAGE_KEY,
@@ -180,111 +203,63 @@ export default function GrowthAuditPage() {
     });
   };
 
-  const canContinue = () => {
+  function canContinue(form, step) {
     switch (step) {
       case 0:
         return Boolean(
-          form.brandName &&
+          form.brandName.trim() &&
           form.businessType &&
-          form.product &&
-          form.averagePrice,
+          form.product.trim() &&
+          form.averagePrice.trim() &&
+          form.businessAge &&
+          form.salesConsistency,
         );
 
       case 1:
         return Boolean(
           form.currentlyRunningAds &&
           form.acquisitionChannel &&
-          form.conversionMethod,
+          form.conversionMethod &&
+          form.leadConversionRate,
         );
 
       case 2:
-        return Boolean(form.monthlyRevenue && form.monthlyAdSpend);
+        return Boolean(
+          form.monthlyRevenue && form.monthlyAdSpend && form.revenueTrend,
+        );
 
       case 3:
-        return Boolean(form.biggestBottleneck.length > 0 && form.goal);
+        return Boolean(
+          form.biggestBottleneck.length > 0 &&
+          form.goal.trim() &&
+          form.urgency &&
+          form.urgencyImpact.trim(),
+        );
 
       case 4:
-        return Boolean(form.investment);
+        return Boolean(
+          form.agencyFeeBudget &&
+          form.mediaBudget &&
+          form.decisionAuthority &&
+          form.startTimeline,
+        );
 
       case 5:
-        return Boolean(form.name && form.whatsapp && form.email);
+        return Boolean(
+          form.name.trim() &&
+          form.whatsapp.trim() &&
+          form.email.trim() &&
+          form.auditIntent &&
+          form.contactConsent,
+        );
 
       default:
         return false;
     }
-  };
-
-  const calculateQualification = (form) => {
-    let score = 0;
-    let tier = "not_fit";
-
-    // Business fit
-    const goodBusinessTypes = [
-      "E-commerce",
-      "Bisnis Lokal",
-      "Klinik / Healthcare",
-      "Jasa Profesional",
-      "Edukasi / Kursus",
-      "B2B",
-      "SaaS / Teknologi",
-    ];
-
-    if (goodBusinessTypes.includes(form.businessType)) {
-      score += 2;
-    }
-
-    // Revenue
-    const revenueScore = {
-      "< Rp10jt": 0,
-      "Rp10–25jt": 1,
-      "Rp25–50jt": 2,
-      "Rp50–100jt": 3,
-      "Rp100–250jt": 3,
-      "Rp250jt+": 3,
-      "Tidak ingin menyebutkan": 0,
-    };
-
-    score += revenueScore[form.monthlyRevenue] ?? 0;
-
-    // Current ads / acquisition
-    if (form.currentlyRunningAds === "Ya") {
-      score += 2;
-    } else if (form.currentlyRunningAds === "Pernah") {
-      score += 1;
-    }
-
-    // Investment readiness
-    const investmentScore = {
-      "< Rp1jt": 0,
-      "Rp1–3jt": 1,
-      "Rp3–5jt": 2,
-      "Rp5–10jt": 3,
-      "> Rp10jt": 3,
-      "Saya belum tahu, saya ingin melihat rekomendasinya terlebih dahulu": 0,
-    };
-
-    score += investmentScore[form.investment] ?? 0;
-
-    // Has meaningful growth goal
-    if (form.goal?.trim()) {
-      score += 1;
-    }
-
-    if (score >= 7) {
-      tier = "qualified";
-    } else if (score >= 4) {
-      tier = "nurture";
-    }
-
-    return {
-      score,
-      qualified: tier === "qualified",
-      tier,
-    };
-  };
+  }
 
   const submitAudit = async () => {
-    if (!canContinue() || submitting) return;
+    if (!canContinue(form, step) || submitting) return;
 
     setSubmitting(true);
     setError("");
@@ -317,37 +292,41 @@ export default function GrowthAuditPage() {
       // 3. PREPARE LEAD DATA
       // =========================================
 
-      const auditData = {
-        ...form,
+      const qualificationData = {
+        businessFitScore: qualification.businessFitScore,
+        salesReadinessScore: qualification.salesReadinessScore,
+        nurturePotentialScore: qualification.nurturePotentialScore,
 
-        auditScore: auditResult.auditScore,
-        businessStage: auditResult.businessStage,
-        acquisitionStatus: auditResult.acquisitionStatus,
-        primaryBottleneck: auditResult.primaryBottleneck,
-        readiness: auditResult.readiness,
-        recommendations: auditResult.recommendations,
+        // Pertahankan nama field ini jika dashboard lama membacanya.
+        qualificationScore: qualification.salesReadinessScore,
 
-        qualificationScore: qualification.score,
-        qualificationTier: qualification.tier,
+        qualificationTier: qualification.qualificationTier,
         qualified: qualification.qualified,
+        qualificationReasons: qualification.qualificationReasons,
+        nextAction: qualification.nextAction,
 
-        // CRM lifecycle
         salesStage: "new",
-
+        nurtureStage: "not_started",
         contactStatus: "not_contacted",
+
         lastContactedAt: null,
         nextFollowUpAt: null,
-
         proposalSentAt: null,
         wonAt: null,
         lostAt: null,
-
         callBookedAt: null,
         callCompletedAt: null,
+      };
+
+      const auditData = {
+        ...form,
+        ...auditResult,
+        ...qualificationData,
 
         source: "website",
-        formVersion: "v1",
-
+        formVersion: "v2",
+        contactConsent: form.contactConsent === true,
+        contactConsentAt: serverTimestamp(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -364,15 +343,13 @@ export default function GrowthAuditPage() {
         readiness: auditResult.readiness,
         recommendations: auditResult.recommendations,
 
-        qualificationScore: qualification.score,
+        qualificationScore: qualification.salesReadinessScore,
+        qualificationTier: qualification.qualificationTier,
         qualified: qualification.qualified,
-        qualificationTier: qualification.tier,
 
         auditId: auditRef.id,
-
         createdAt: serverTimestamp(),
-
-        formVersion: "v1",
+        formVersion: "v2",
       };
 
       // =========================================
@@ -428,9 +405,8 @@ export default function GrowthAuditPage() {
   };
 
   const nextStep = () => {
-    if (!canContinue() || submitting) return;
+    if (!canContinue(form, step) || submitting) return;
 
-    // Last step → submit audit
     if (step === steps.length - 1) {
       submitAudit();
       return;
@@ -439,9 +415,7 @@ export default function GrowthAuditPage() {
     const nextStepIndex = step + 1;
 
     window.history.pushState(
-      {
-        auditStep: nextStepIndex,
-      },
+      { auditStep: nextStepIndex },
       "",
       window.location.pathname,
     );
@@ -596,7 +570,7 @@ export default function GrowthAuditPage() {
             <button
               type="button"
               onClick={nextStep}
-              disabled={!canContinue() || submitting}
+              disabled={!canContinue(form, step) || submitting}
               className={`
       inline-flex items-center justify-center gap-2 rounded-full
       px-5 py-3 text-sm font-semibold
@@ -740,6 +714,210 @@ function StepHeading({ eyebrow, title, description }) {
   );
 }
 
+function BusinessReadinessFields({ form, updateField }) {
+  return (
+    <>
+      <div>
+        <FieldLabel>Sudah berapa lama bisnis berjalan?</FieldLabel>
+        <SelectField
+          value={form.businessAge}
+          onChange={(v) => updateField("businessAge", v)}
+          placeholder="Pilih usia bisnis"
+          options={[
+            "Kurang dari 6 bulan",
+            "6–12 bulan",
+            "1–2 tahun",
+            "3–5 tahun",
+            "Lebih dari 5 tahun",
+          ]}
+        />
+      </div>
+
+      <div>
+        <FieldLabel>Apakah bisnis sudah menghasilkan penjualan?</FieldLabel>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {["Ya, rutin", "Kadang-kadang", "Belum ada penjualan"].map((v) => (
+            <OptionButton
+              key={v}
+              active={form.salesConsistency === v}
+              onClick={() => updateField("salesConsistency", v)}
+            >
+              {v}
+            </OptionButton>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function ConversionRateField({ form, updateField }) {
+  return (
+    <div>
+      <FieldLabel>
+        Dari 10 calon customer yang bertanya, kira-kira berapa yang membeli?
+      </FieldLabel>
+      <SelectField
+        value={form.leadConversionRate}
+        onChange={(v) => updateField("leadConversionRate", v)}
+        placeholder="Pilih perkiraan konversi"
+        options={[
+          "Belum tahu",
+          "0 dari 10",
+          "1 dari 10",
+          "2–3 dari 10",
+          "4–5 dari 10",
+          "Lebih dari 5 dari 10",
+        ]}
+      />
+      <p className="mt-2 text-xs leading-5 text-gray-500">
+        Estimasi saja tidak masalah. Kami ingin memahami apakah masalahnya ada
+        pada jumlah leads atau proses mengubah leads menjadi customer.
+      </p>
+    </div>
+  );
+}
+
+function RevenueTrendField({ form, updateField }) {
+  return (
+    <div>
+      <FieldLabel>Bagaimana tren omzet dalam 3 bulan terakhir?</FieldLabel>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {["Meningkat", "Stabil", "Menurun", "Belum bisa menilai"].map((v) => (
+          <OptionButton
+            key={v}
+            active={form.revenueTrend === v}
+            onClick={() => updateField("revenueTrend", v)}
+          >
+            {v}
+          </OptionButton>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function UrgencyFields({ form, updateField }) {
+  return (
+    <>
+      <div>
+        <FieldLabel>
+          Seberapa mendesak masalah ini perlu diselesaikan?
+        </FieldLabel>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[
+            "Sangat mendesak",
+            "Cukup mendesak",
+            "Belum mendesak",
+            "Sedang mencari informasi",
+          ].map((v) => (
+            <OptionButton
+              key={v}
+              active={form.urgency === v}
+              onClick={() => updateField("urgency", v)}
+            >
+              {v}
+            </OptionButton>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <FieldLabel>
+          Apa dampaknya jika masalah ini tidak terselesaikan?
+        </FieldLabel>
+        <TextInput
+          value={form.urgencyImpact}
+          onChange={(v) => updateField("urgencyImpact", v)}
+          placeholder="Contoh: target omzet tidak tercapai..."
+        />
+      </div>
+    </>
+  );
+}
+
+function InvestmentQualificationFields({ form, updateField }) {
+  return (
+    <>
+      <div>
+        <FieldLabel>
+          Berapa fee agency per bulan yang realistis untuk bisnis Anda?
+        </FieldLabel>
+        <SelectField
+          value={form.agencyFeeBudget}
+          onChange={(v) => {
+            updateField("agencyFeeBudget", v);
+            // Field lama tetap disinkronkan untuk kompatibilitas.
+            updateField("investment", v === "Di atas Rp10jt" ? "> Rp10jt" : v);
+          }}
+          placeholder="Pilih kisaran fee agency"
+          options={[
+            "< Rp1jt",
+            "Rp1–3jt",
+            "Rp3–5jt",
+            "Rp5–10jt",
+            "Di atas Rp10jt",
+            "Belum tahu, ingin memahami rekomendasinya terlebih dahulu",
+          ]}
+        />
+        <p className="mt-2 text-xs leading-5 text-gray-500">
+          Ini adalah biaya jasa agency, bukan budget iklan yang dibayarkan ke
+          Meta atau platform iklan lainnya.
+        </p>
+      </div>
+
+      <div>
+        <FieldLabel>
+          Berapa media spend per bulan yang bisa dialokasikan di luar fee
+          agency?
+        </FieldLabel>
+        <SelectField
+          value={form.mediaBudget}
+          onChange={(v) => updateField("mediaBudget", v)}
+          placeholder="Pilih budget iklan"
+          options={[
+            "Belum ada budget iklan",
+            "Di bawah Rp1jt",
+            "Rp1–5jt",
+            "Rp5–10jt",
+            "Rp10–25jt",
+            "Di atas Rp25jt",
+          ]}
+        />
+      </div>
+
+      <div>
+        <FieldLabel>Siapa yang mengambil keputusan kerja sama?</FieldLabel>
+        <SelectField
+          value={form.decisionAuthority}
+          onChange={(v) => updateField("decisionAuthority", v)}
+          placeholder="Pilih otoritas keputusan"
+          options={[
+            "Saya pengambil keputusan",
+            "Saya berbagi keputusan dengan partner/tim",
+            "Saya perlu meminta persetujuan orang lain",
+          ]}
+        />
+      </div>
+
+      <div>
+        <FieldLabel>Kapan Anda ingin mulai implementasi?</FieldLabel>
+        <SelectField
+          value={form.startTimeline}
+          onChange={(v) => updateField("startTimeline", v)}
+          placeholder="Pilih waktu mulai"
+          options={[
+            "Dalam 30 hari",
+            "Dalam 31–90 hari",
+            "Lebih dari 90 hari",
+            "Belum memiliki rencana",
+          ]}
+        />
+      </div>
+    </>
+  );
+}
+
 /* =========================================================
    BUSINESS
 ========================================================= */
@@ -803,6 +981,7 @@ function BusinessStep({ form, updateField }) {
             placeholder="Contoh: Rp500.000"
           />
         </div>
+        <BusinessReadinessFields form={form} updateField={updateField} />
       </div>
     </div>
   );
@@ -873,6 +1052,7 @@ function AcquisitionStep({ form, updateField }) {
               "WhatsApp",
               "Website / Landing Page",
               "Telepon",
+              "Marketplace",
               "Appointment / Booking",
               "Checkout",
               "Tim Sales",
@@ -880,6 +1060,7 @@ function AcquisitionStep({ form, updateField }) {
             ]}
           />
         </div>
+        <ConversionRateField form={form} updateField={updateField} />
       </div>
     </div>
   );
@@ -946,6 +1127,7 @@ function EconomicsStep({ form, updateField }) {
             placeholder="Contoh: Rp300.000/hari"
           />
         </div>
+        <RevenueTrendField form={form} updateField={updateField} />
       </div>
     </div>
   );
@@ -1007,6 +1189,7 @@ function BottleneckStep({ form, updateField, toggleBottleneck }) {
             placeholder="Contoh: 2x omzet, 100 leads berkualitas/bulan..."
           />
         </div>
+        <UrgencyFields form={form} updateField={updateField} />
       </div>
     </div>
   );
@@ -1017,41 +1200,16 @@ function BottleneckStep({ form, updateField, toggleBottleneck }) {
 ========================================================= */
 
 function InvestmentStep({ form, updateField }) {
-  const options = [
-    "< Rp1jt",
-    "Rp1–3jt",
-    "Rp3–5jt",
-    "Rp5–10jt",
-    "> Rp10jt",
-    "Saya belum tahu, saya ingin melihat rekomendasinya terlebih dahulu",
-  ];
-
   return (
     <div>
       <StepHeading
         eyebrow="05 / Investasi"
         title="Seberapa siap Anda berinvestasi untuk growth?"
-        description="Jawaban ini membantu kami memahami apakah ada potential fit untuk partnership dan level implementasi yang masuk akal."
+        description="Kami memisahkan fee agency dari media spend agar bisa menilai kecocokan partnership secara lebih realistis."
       />
 
-      <div className="mt-10">
-        <FieldLabel>
-          Jika kami menemukan peluang pertumbuhan yang masuk akal untuk bisnis
-          Anda, berapa investasi yang bersedia Anda siapkan untuk
-          implementasinya?
-        </FieldLabel>
-
-        <div className="mt-4 grid gap-3">
-          {options.map((option) => (
-            <OptionButton
-              key={option}
-              active={form.investment === option}
-              onClick={() => updateField("investment", option)}
-            >
-              {option}
-            </OptionButton>
-          ))}
-        </div>
+      <div className="mt-10 space-y-6">
+        <InvestmentQualificationFields form={form} updateField={updateField} />
       </div>
     </div>
   );
@@ -1112,6 +1270,35 @@ function ContactStep({ form, updateField }) {
             placeholder="Contoh: @namabrand atau facebook.com/namabrand"
           />
         </div>
+
+        <div>
+          <FieldLabel>Apa tujuan utama Anda mengisi Growth Audit?</FieldLabel>
+          <SelectField
+            value={form.auditIntent}
+            onChange={(v) => updateField("auditIntent", v)}
+            placeholder="Pilih tujuan Anda"
+            options={[
+              "Menemukan penyebab growth terhambat",
+              "Memperbaiki kualitas dan konversi leads",
+              "Menilai kesiapan scaling iklan",
+              "Mencari partner agency untuk implementasi",
+              "Belajar dan memahami kondisi bisnis terlebih dahulu",
+            ]}
+          />
+        </div>
+
+        <label className="flex items-start gap-3 text-sm leading-6 text-gray-400">
+          <input
+            type="checkbox"
+            checked={Boolean(form.contactConsent)}
+            onChange={(e) => updateField("contactConsent", e.target.checked)}
+            className="mt-1 accent-white"
+          />
+          <span>
+            Saya setuju dihubungi Lucratus melalui kontak yang saya berikan
+            mengenai hasil Growth Audit dan rekomendasi yang relevan.
+          </span>
+        </label>
       </div>
     </div>
   );

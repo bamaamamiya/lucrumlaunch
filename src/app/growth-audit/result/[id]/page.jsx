@@ -137,15 +137,30 @@ export default function GrowthAuditResultPage() {
     return <ErrorScreen />;
   }
 
-  const businessStage = audit.businessStage;
+  const businessStage = audit.businessStage ?? {
+    label: "Belum tersedia",
+    description: "Informasi business stage belum tersedia.",
+  };
 
-  const acquisitionStatus = audit.acquisitionStatus;
+  const acquisitionStatus = audit.acquisitionStatus ?? {
+    label: "Belum tersedia",
+    description: "Informasi acquisition belum tersedia.",
+  };
 
-  const bottleneck = audit.primaryBottleneck;
+  const bottleneck = audit.primaryBottleneck ?? {
+    label: "Belum teridentifikasi",
+    description: "Diagnosis bottleneck belum tersedia.",
+    recommendation: "Periksa kembali data audit sebelum menentukan prioritas.",
+  };
 
-  const readiness = audit.readiness;
+  const readiness = audit.readiness ?? {
+    label: "Belum tersedia",
+    description: "Informasi growth readiness belum tersedia.",
+  };
 
-  const recommendations = audit.recommendations || [];
+  const recommendations = Array.isArray(audit.recommendations)
+    ? audit.recommendations
+    : [];
 
   const qualified = audit.qualified === true;
 
@@ -216,7 +231,7 @@ export default function GrowthAuditResultPage() {
 
             <div className="flex h-32 w-32 shrink-0 flex-col items-center justify-center rounded-full border border-white/[0.1] bg-white/[0.025]">
               <span className="text-4xl font-semibold tracking-[-0.05em]">
-                {audit.auditScore}
+                {audit.auditScore ?? "—"}
               </span>
 
               <span className="mt-1 text-[10px] uppercase tracking-[0.2em] text-gray-600">
