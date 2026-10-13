@@ -1,15 +1,18 @@
-import Navbar from "./components/Navbar";
-import Hero from "./components/Hero";
-import WhoWeServe from "./components/WhoWeServe";
-import Services from "./components/Services";
-import Results from "./components/Results";
-import GrowthAudit from "./components/GrowthAudit";
-import EmpowerSection from "./components/EmpowerSection";
-import BrandBackground from "./components/BrandBackground";
+import MetaPixel from "@/app/components/MetaPixel";
+import Navbar from "@/app/components/Navbar";
+import Hero from "@/app/components/Hero";
+import WhoWeServe from "@/app/components/WhoWeServe";
+import Services from "@/app/components/Services";
+import Results from "@/app/components/Results";
+import GrowthAudit from "@/app/components/GrowthAudit";
+import EmpowerSection from "@/app/components/EmpowerSection";
+import BrandBackground from "@/app/components/BrandBackground";
 
 export default function Home() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0D0D0D] text-white">
+      <MetaPixel />
+
       <BrandBackground />
 
       <Navbar />
