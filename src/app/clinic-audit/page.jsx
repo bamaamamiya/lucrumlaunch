@@ -11,10 +11,7 @@ import {
   UserRoundCheck,
   XCircle,
 } from "lucide-react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import MetaPixel from "@/app/components/MetaPixel";
-
+import { trackMetaEvent } from "@/app/components/MetaPixel";
 const CALENDLY_URL =
   "https://calendly.com/agencylucratus/discovery-call?hide_gdpr_banner=1";
 const revenueOptions = [
@@ -187,57 +184,64 @@ export default function ClinicAuditPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function submit() {
-    if (
-      !form.clinicName.trim() ||
-      !form.name.trim() ||
-      !form.whatsapp.trim() ||
-      !form.email.trim() ||
-      !form.contactConsent ||
-      submitting
-    )
-      return;
+  
+async function submit() {
+  if (!isContactValid || submitting) return;
 
-    const revenueQualified = isRevenueQualified(form.annualRevenue);
-    setSubmitting(true);
-    setError("");
+  setSubmitting(true);
+  setError("");
 
-    try {
-      const doc = await addDoc(collection(db, "clinicAudits"), {
-        ...form,
-        qualified: revenueQualified,
-        qualificationTier: revenueQualified ? "qualified" : "nurture",
-        qualificationReasons: [
-          "Kontak menyatakan sebagai pemilik klinik",
-          revenueQualified
-            ? "Omzet tahunan masuk kriteria awal Lucratus"
-            : "Omzet tahunan di bawah ambang kualifikasi awal atau belum dinyatakan",
-        ],
-        salesStage: revenueQualified ? "new" : "nurture",
-        contactStatus: "not_contacted",
-        nurtureStage: revenueQualified ? "not_started" : "not_started",
-        source: "clinic-audit-website",
-        formVersion: "clinic-v2-short",
-        contactConsentAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+  try {
+    const getCookie = (name) => {
+      const prefix = `${name}=`;
+      const item = document.cookie
+        .split("; ")
+        .find((cookie) => cookie.startsWith(prefix));
 
-      // Fire Meta Lead hanya setelah Firestore berhasil
-      trackMetaLead();
-      setAuditId(doc.id);
-      setQualified(revenueQualified);
-      setStage("result");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (e) {
-      console.error("[ClinicAudit] submit failed", e);
-      setError(
-        "Form belum berhasil dikirim. Periksa koneksi Anda, lalu coba kembali.",
-      );
-    } finally {
-      setSubmitting(false);
+      return item
+        ? decodeURIComponent(item.slice(prefix.length))
+        : "";
+    };
+
+    const response = await fetch("/api/clinic-audit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        form,
+        fbp: getCookie("_fbp"),
+        fbc: getCookie("_fbc"),
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "Form gagal dikirim.");
     }
+
+    // Deduplikasi: ID ini sama dengan event_id yang dikirim melalui CAPI.
+    trackMetaEvent("Lead", result.eventId, {
+      content_name: "Clinic Growth Assessment",
+      content_category: "Clinic",
+    });
+
+    setAuditId(result.auditId);
+    setQualified(result.qualified);
+    setStage("result");
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) {
+    console.error("[ClinicAudit] submit failed", e);
+    setError(
+      e.message || "Form belum berhasil dikirim. Silakan coba kembali."
+    );
+  } finally {
+    setSubmitting(false);
   }
+}
+
 
   const isContactValid = Boolean(
     form.clinicName.trim() &&
