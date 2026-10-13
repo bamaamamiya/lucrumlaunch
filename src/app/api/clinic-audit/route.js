@@ -1,8 +1,7 @@
-
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
-import { adminDb } from "@/lib/firebaseAdmin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { sendMetaEvent, normalizeEmail, normalizePhone } from "@/lib/meta-capi";
 
 export const runtime = "nodejs";
@@ -21,7 +20,7 @@ export async function POST(request) {
     if (!form || typeof form !== "object" || Array.isArray(form)) {
       return NextResponse.json(
         { error: "Data form tidak valid." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -44,12 +43,13 @@ export async function POST(request) {
     ) {
       return NextResponse.json(
         { error: "Periksa kembali data form Anda." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const qualified = qualifiedRevenueOptions.includes(annualRevenue);
-    const auditRef = adminDb.collection("clinicAudits").doc();
+    const db = getAdminDb();
+    const auditRef = db.collection("clinicAudits").doc();
     const eventId = randomUUID();
 
     const fbp = typeof body.fbp === "string" ? body.fbp.slice(0, 200) : "";
@@ -163,7 +163,7 @@ export async function POST(request) {
 
     return NextResponse.json(
       { error: "Form belum berhasil dikirim. Silakan coba kembali." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

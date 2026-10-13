@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+.calendly-mobile-container iframe {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  border: 0 !important;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

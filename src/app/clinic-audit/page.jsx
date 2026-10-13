@@ -11,7 +11,9 @@ import {
   UserRoundCheck,
   XCircle,
 } from "lucide-react";
-import { trackMetaEvent } from "@/app/components/MetaPixel";
+
+import MetaPixel, { trackMetaEvent } from "@/app/components/MetaPixel";
+
 const CALENDLY_URL =
   "https://calendly.com/agencylucratus/discovery-call?hide_gdpr_banner=1";
 const revenueOptions = [
@@ -94,10 +96,8 @@ function CalendlyEmbed() {
 
   useEffect(() => {
     const src = "https://assets.calendly.com/assets/external/widget.js";
-
-    let script = document.querySelector(`script[src="${src}"]`);
-
     let cancelled = false;
+    let script = document.querySelector(`script[src="${src}"]`);
 
     const initWidget = () => {
       if (
@@ -114,36 +114,52 @@ function CalendlyEmbed() {
         url: CALENDLY_URL,
         parentElement: containerRef.current,
       });
+
+      console.log("[Calendly] Inline widget initialized");
     };
 
-    if (script && window.Calendly?.initInlineWidget) {
+    if (window.Calendly?.initInlineWidget) {
       initWidget();
     } else if (script) {
-      script.addEventListener("load", initWidget, {
-        once: true,
-      });
+      script.addEventListener("load", initWidget, { once: true });
     } else {
       script = document.createElement("script");
       script.src = src;
       script.async = true;
-      script.addEventListener("load", initWidget, {
-        once: true,
-      });
+      script.addEventListener("load", initWidget, { once: true });
+      script.addEventListener(
+        "error",
+        () => console.error("[Calendly] Widget script failed to load"),
+        { once: true },
+      );
       document.body.appendChild(script);
     }
 
     return () => {
       cancelled = true;
+      script?.removeEventListener("load", initWidget);
     };
   }, []);
 
   return (
     <div
-      ref={containerRef}
-      className="min-w-[320px] w-full overflow-hidden rounded-xl"
-      style={{ minWidth: "320px", height: "700px" }}
-      aria-label="Pilih jadwal Clinic Growth Call"
-    />
+      className="
+        relative left-1/2 w-screen -translate-x-1/2
+        overflow-hidden
+        md:static md:w-full md:translate-x-0
+      "
+    >
+      <div
+        ref={containerRef}
+        className="calendly-mobile-container w-full overflow-hidden md:rounded-xl"
+        style={{
+          minWidth: "320px",
+          width: "100%",
+          height: "760px",
+        }}
+        aria-label="Pilih jadwal Clinic Growth Call"
+      />
+    </div>
   );
 }
 
@@ -184,64 +200,78 @@ export default function ClinicAuditPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  
-async function submit() {
-  if (!isContactValid || submitting) return;
+  async function submit() {
+    if (!isContactValid || submitting) return;
 
-  setSubmitting(true);
-  setError("");
+    setSubmitting(true);
+    setError("");
 
-  try {
-    const getCookie = (name) => {
-      const prefix = `${name}=`;
-      const item = document.cookie
-        .split("; ")
-        .find((cookie) => cookie.startsWith(prefix));
+    try {
+      const getCookie = (name) => {
+        const prefix = `${name}=`;
+        const item = document.cookie
+          .split("; ")
+          .find((cookie) => cookie.startsWith(prefix));
 
-      return item
-        ? decodeURIComponent(item.slice(prefix.length))
-        : "";
-    };
+        return item ? decodeURIComponent(item.slice(prefix.length)) : "";
+      };
 
-    const response = await fetch("/api/clinic-audit", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        form,
-        fbp: getCookie("_fbp"),
-        fbc: getCookie("_fbc"),
-      }),
-    });
+      const response = await fetch("/api/clinic-audit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          form,
+          fbp: getCookie("_fbp"),
+          fbc: getCookie("_fbc"),
+        }),
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (!response.ok) {
-      throw new Error(result.error || "Form gagal dikirim.");
+      console.log("[ClinicAudit] API response:", {
+        status: response.status,
+        ok: response.ok,
+        auditId: result.auditId,
+        qualified: result.qualified,
+        eventId: result.eventId,
+      });
+
+      if (!response.ok) {
+        console.error("[ClinicAudit] Form gagal dikirim:", result.error);
+        throw new Error(result.error || "Form gagal dikirim.");
+      }
+
+      console.log("[ClinicAudit] Form berhasil diterima API");
+
+      // Deduplikasi: ID ini sama dengan event_id yang dikirim melalui CAPI.
+      // Kirim event Lead dari browser
+      const pixelSent = trackMetaEvent("Lead", result.eventId, {
+        content_name: "Clinic Growth Assessment",
+        content_category: "Clinic",
+      });
+
+      console.log("[ClinicAudit] Browser Meta Pixel:", {
+        event: "Lead",
+        eventId: result.eventId,
+        functionExecuted: pixelSent,
+      });
+
+      setAuditId(result.auditId);
+      setQualified(result.qualified);
+      setStage("result");
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      console.error("[ClinicAudit] submit failed", e);
+      setError(
+        e.message || "Form belum berhasil dikirim. Silakan coba kembali.",
+      );
+    } finally {
+      setSubmitting(false);
     }
-
-    // Deduplikasi: ID ini sama dengan event_id yang dikirim melalui CAPI.
-    trackMetaEvent("Lead", result.eventId, {
-      content_name: "Clinic Growth Assessment",
-      content_category: "Clinic",
-    });
-
-    setAuditId(result.auditId);
-    setQualified(result.qualified);
-    setStage("result");
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  } catch (e) {
-    console.error("[ClinicAudit] submit failed", e);
-    setError(
-      e.message || "Form belum berhasil dikirim. Silakan coba kembali."
-    );
-  } finally {
-    setSubmitting(false);
   }
-}
-
 
   const isContactValid = Boolean(
     form.clinicName.trim() &&
