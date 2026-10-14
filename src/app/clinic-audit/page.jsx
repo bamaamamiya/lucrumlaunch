@@ -85,19 +85,62 @@ function Choice({ active, onClick, children }) {
   );
 }
 
-function isRevenueQualified(revenue) {
-  return ["Rp3–5 miliar", "Rp5–10 miliar", "Di atas Rp10 miliar"].includes(
-    revenue,
-  );
+function createMetaEventId(prefix) {
+  const id =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+  return `${prefix}_${id}`;
+}
+
+function trackAuditStep(stepName, eventId) {
+  return trackMetaEvent("AuditStepComplete", eventId, {
+    content_name: "Clinic Growth Assessment",
+    content_category: "Clinic",
+    step_name: stepName,
+  });
+
+	console.log(trackMetaEvent("AuditStepComplete", eventId, {
+		content_name: "Clinic Growth Assessment",
+		content_category: "Clinic",
+		step_name: stepName,
+	}));
 }
 
 function CalendlyEmbed() {
   const containerRef = useRef(null);
+  const scheduledRef = useRef(false);
 
   useEffect(() => {
     const src = "https://assets.calendly.com/assets/external/widget.js";
+
     let cancelled = false;
     let script = document.querySelector(`script[src="${src}"]`);
+
+    const handleCalendlyMessage = (event) => {
+      if (event.origin !== "https://calendly.com") return;
+
+      if (event.data?.event !== "calendly.event_scheduled") {
+        return;
+      }
+
+      if (scheduledRef.current) return;
+      scheduledRef.current = true;
+
+      const eventId = createMetaEventId("clinic_schedule");
+
+      trackMetaEvent("Schedule", eventId, {
+        content_name: "Clinic Growth Call",
+        content_category: "Clinic",
+      });
+
+      console.log("[Calendly] Booking confirmed", {
+        eventId,
+      });
+    };
+
+    window.addEventListener("message", handleCalendlyMessage);
 
     const initWidget = () => {
       if (
@@ -121,23 +164,35 @@ function CalendlyEmbed() {
     if (window.Calendly?.initInlineWidget) {
       initWidget();
     } else if (script) {
-      script.addEventListener("load", initWidget, { once: true });
+      script.addEventListener("load", initWidget, {
+        once: true,
+      });
     } else {
       script = document.createElement("script");
       script.src = src;
       script.async = true;
-      script.addEventListener("load", initWidget, { once: true });
+
+      script.addEventListener("load", initWidget, {
+        once: true,
+      });
+
       script.addEventListener(
         "error",
-        () => console.error("[Calendly] Widget script failed to load"),
+        () => {
+          console.error("[Calendly] Widget script failed to load");
+        },
         { once: true },
       );
+
       document.body.appendChild(script);
     }
 
     return () => {
       cancelled = true;
+
       script?.removeEventListener("load", initWidget);
+
+      window.removeEventListener("message", handleCalendlyMessage);
     };
   }, []);
 
@@ -163,16 +218,6 @@ function CalendlyEmbed() {
   );
 }
 
-function trackMetaLead() {
-  if (typeof window === "undefined") return;
-  if (typeof window.fbq !== "function") return;
-
-  window.fbq("track", "Lead", {
-    content_name: "Clinic Growth Assessment",
-    content_category: "Clinic",
-  });
-}
-
 export default function ClinicAuditPage() {
   const [form, setForm] = useState(initialForm);
   const [stage, setStage] = useState("owner"); // owner | revenue | contact | result | disqualified | error
@@ -181,21 +226,49 @@ export default function ClinicAuditPage() {
   const [error, setError] = useState("");
   const [auditId, setAuditId] = useState("");
 
+  const trackedStepsRef = useRef(new Set());
+  const leadTrackedRef = useRef(false);
+  const qualifiedLeadTrackedRef = useRef(false);
   const update = (field, value) =>
     setForm((previous) => ({ ...previous, [field]: value }));
 
   function nextFromOwner() {
     if (!form.isClinicOwner) return;
+
     if (form.isClinicOwner === "Tidak") {
       setStage("disqualified");
       return;
     }
+
+    if (!trackedStepsRef.current.has("owner")) {
+      trackedStepsRef.current.add("owner");
+
+      trackMetaEvent("StartAudit", createMetaEventId("clinic_audit_start"), {
+        content_name: "Clinic Growth Assessment",
+        content_category: "Clinic",
+      });
+
+			console.log(trackMetaEvent("StartAudit", createMetaEventId("clinic_audit_start"), {
+				content_name: "Clinic Growth Assessment",
+				content_category: "Clinic",
+			}));
+
+      trackAuditStep("owner", createMetaEventId("clinic_audit_step_owner"));
+    }
+
     setStage("revenue");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function nextFromRevenue() {
     if (!form.annualRevenue) return;
+
+    if (!trackedStepsRef.current.has("revenue")) {
+      trackedStepsRef.current.add("revenue");
+
+      trackAuditStep("revenue", createMetaEventId("clinic_audit_step_revenue"));
+    }
+
     setStage("contact");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -243,26 +316,42 @@ export default function ClinicAuditPage() {
         throw new Error(result.error || "Form gagal dikirim.");
       }
 
-      console.log("[ClinicAudit] Form berhasil diterima API");
+      // Hanya tracking setelah API mengonfirmasi keberhasilan.
+      if (!leadTrackedRef.current) {
+        leadTrackedRef.current = true;
 
-      // Deduplikasi: ID ini sama dengan event_id yang dikirim melalui CAPI.
-      // Kirim event Lead dari browser
-      const pixelSent = trackMetaEvent("Lead", result.eventId, {
-        content_name: "Clinic Growth Assessment",
-        content_category: "Clinic",
-      });
+        const pixelSent = trackMetaEvent("Lead", result.eventId, {
+          content_name: "Clinic Growth Assessment",
+          content_category: "Clinic",
+        });
 
-      console.log("[ClinicAudit] Browser Meta Pixel:", {
-        event: "Lead",
-        eventId: result.eventId,
-        functionExecuted: pixelSent,
-      });
+        console.log("[ClinicAudit] Browser Lead:", {
+          eventId: result.eventId,
+          pixelSent,
+        });
+      }
 
-      setAuditId(result.auditId);
-      setQualified(result.qualified);
-      setStage("result");
+      if (
+        result.qualified &&
+        result.qualifiedEventId &&
+        !qualifiedLeadTrackedRef.current
+      ) {
+        qualifiedLeadTrackedRef.current = true;
 
-      window.scrollTo({ top: 0, behavior: "smooth" });
+        const qualifiedPixelSent = trackMetaEvent(
+          "QualifiedLead",
+          result.qualifiedEventId,
+          {
+            content_name: "Clinic Growth Assessment",
+            content_category: "Clinic",
+          },
+        );
+
+        console.log("[ClinicAudit] Browser QualifiedLead:", {
+          eventId: result.qualifiedEventId,
+          pixelSent: qualifiedPixelSent,
+        });
+      }
     } catch (e) {
       console.error("[ClinicAudit] submit failed", e);
       setError(

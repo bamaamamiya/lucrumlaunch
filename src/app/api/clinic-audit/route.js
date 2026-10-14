@@ -157,6 +157,7 @@ export async function POST(request) {
       auditId: auditRef.id,
       eventId,
       qualified,
+      qualifiedEventId: qualified ? `qualified_${auditRef.id}` : null,
     });
   } catch (error) {
     console.error("Clinic audit API failed:", error);
