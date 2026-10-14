@@ -100,12 +100,6 @@ function trackAuditStep(stepName, eventId) {
     content_category: "Clinic",
     step_name: stepName,
   });
-
-	console.log(trackMetaEvent("AuditStepComplete", eventId, {
-		content_name: "Clinic Growth Assessment",
-		content_category: "Clinic",
-		step_name: stepName,
-	}));
 }
 
 function CalendlyEmbed() {
@@ -248,10 +242,12 @@ export default function ClinicAuditPage() {
         content_category: "Clinic",
       });
 
-			console.log(trackMetaEvent("StartAudit", createMetaEventId("clinic_audit_start"), {
-				content_name: "Clinic Growth Assessment",
-				content_category: "Clinic",
-			}));
+      console.log(
+        trackMetaEvent("StartAudit", createMetaEventId("clinic_audit_start"), {
+          content_name: "Clinic Growth Assessment",
+          content_category: "Clinic",
+        }),
+      );
 
       trackAuditStep("owner", createMetaEventId("clinic_audit_step_owner"));
     }
@@ -352,6 +348,24 @@ export default function ClinicAuditPage() {
           pixelSent: qualifiedPixelSent,
         });
       }
+      // Simpan hasil dari API ke state React.
+      setAuditId(result.auditId);
+      setQualified(result.qualified === true);
+
+      // Pindah ke halaman hasil audit.
+      setStage("result");
+
+      // Kembali ke bagian atas agar hasil langsung terlihat.
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+
+      console.log("[ClinicAudit] Result state updated:", {
+        auditId: result.auditId,
+        qualified: result.qualified,
+        stage: "result",
+      });
     } catch (e) {
       console.error("[ClinicAudit] submit failed", e);
       setError(
